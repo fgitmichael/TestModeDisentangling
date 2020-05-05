@@ -7,6 +7,7 @@ from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 
 from memory import LazyMemory
+from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
 from utils import calc_kl_divergence, update_params, RunningMeanStats
@@ -85,7 +86,7 @@ class DisentanglingTrainer(LatentTrainer):
         self.latent_optim = Adam(self.latent.parameters(), lr=parent_kwargs['latent_lr'])
 
         # Memory
-        self.memory = LazyMemory(
+        self.memory = MyMemoryDisentangling(
             parent_kwargs['memory_size'],
             num_sequences=parent_kwargs['num_sequences'],
             observation_shape=self.observation_shape,
