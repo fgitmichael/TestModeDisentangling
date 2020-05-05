@@ -87,11 +87,11 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Memory
         self.memory = MyMemoryDisentangling(
-            parent_kwargs['memory_size'],
+            capacity=parent_kwargs['memory_size'],
             num_sequences=parent_kwargs['num_sequences'],
             observation_shape=self.observation_shape,
             action_shape=self.action_shape,
-            device=self.device,
+            device=self.device
         )
 
         # Log directories

@@ -214,7 +214,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         for t in range(num_sequences + 1):
             if t==0:
                 # q(z1(0) | action(0))
-                latent1_dist = self.latent1_init_posterior(features_seq[t])
+                latent1_dist = self.latent1_init_posterior(actions_seq[t])
                 latent1_sample = latent1_dist.rsample()
                 # q(z2(0) | z1(0))
                 latent2_dist = self.latent2_init_posterior(latent1_sample)
