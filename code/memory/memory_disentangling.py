@@ -27,6 +27,14 @@ class MyMemoryDisentangling(LazyMemory):
     def __init__(self, **kwargs):
         super(MyMemoryDisentangling, self).__init__(**kwargs)
 
+    def reset(self):
+        self.is_set_init = False
+        self._p = 0
+        self._n = 0
+        for key in self.keys:
+            self[key] = [None] * self.capacity
+        self.buff = MySeqBufferDisentangling(num_sequences=self.num_sequences)
+
     def sample_latent(self, batch_size):
         '''
         Returns:
