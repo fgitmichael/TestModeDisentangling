@@ -82,3 +82,53 @@ class DmControlEnvForPytorch(gym.Env):
 
     def seed(self, seed):
         self.env.random = seed
+
+
+# Work around to get both state observations and pixel observations
+# for the skill policy
+# TODO: Find better solution
+class DmControlEnvForPytorchBothObstype(DmControlEnvForPytorch):
+    def __init__(self, domain_name, task_name, action_repeat=1,
+                 obs_type='pixels', render_kwargs=None):
+
+        super(DmControlEnvForPytorchBothObstype, self).__init__(
+            domain_name,
+            task_name,
+            action_repeat,
+            obs_type,
+            render_kwargs)
+
+        # Save state representation of actual state for the saved skill
+        # policy
+        self._obs_state_now = None
+
+    def _step(self, action):
+        time_step = self.env.step(action)
+        reward = time_step.reward
+        done = time_step.step_type == 2
+        obs = self._preprocess_obs(time_step)
+
+        self.save_state_obs_now(time_step, obs_type='state')
+
+        return obs, reward, done, None
+
+    def reset(self):
+        time_step = self.env.reset()
+        self.save_state_obs_now(time_step, obs_type='state')
+        return self._preprocess_obs(time_step)
+
+    def save_state_obs_now(self, time_step, obs_type='state'):
+        save_obs_type = self.obs_type
+
+        self.obs_type = obs_type
+        self._obs_state_now = self._preprocess_obs(time_step)
+
+        self.obs_type = save_obs_type
+
+    def get_state_obs(self):
+        if self._obs_state_now is None:
+            raise ValueError('internal obs_state variable is still None')
+        else:
+            return self._obs_state_now
+
+
