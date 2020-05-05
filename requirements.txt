@@ -1,5 +1,7 @@
-numpy
-pillow
-torch
+numpy~=1.18.1
+pillow~=7.0.0
+torch~=1.4.0
 tensorboard
-gym
+gym~=0.17.1
+argparse~=1.4.0
+tqdm~=4.43.0
