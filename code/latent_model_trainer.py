@@ -13,16 +13,28 @@ from PIL import Image
 
 
 class LatentTrainer:
-    def __init__(self, env, log_dir, num_steps=3000000,
-                 initial_latent_steps=100000, batch_size=256,
-                 latent_batch_size=32, num_sequences=8, lr=0.0003,
-                 latent_lr=0.0001, feature_dim=256, latent1_dim=32,
-                 latent2_dim=256, hidden_units=[256, 256], memory_size=1e5,
-                 gamma=0.99, target_update_interval=1, tau=0.005,
-                 entropy_tuning=True, ent_coef=0.2, leaky_slope=0.2,
-                 grad_clip=None, updates_per_step=1, start_steps=10000,
-                 training_log_interval=10, learning_log_interval=100,
-                 eval_interval=50000, cuda=True, seed=0, colab='save'):
+    def __init__(self,
+                 env,
+                 log_dir,
+                 num_steps=3000000,
+                 initial_latent_steps=100000,
+                 batch_size=256,
+                 latent_batch_size=32,
+                 num_sequences=8,
+                 latent_lr=0.0001,
+                 feature_dim=256,
+                 latent1_dim=32,
+                 latent2_dim=256,
+                 hidden_units=[256, 256],
+                 memory_size=1e5,
+                 leaky_slope=0.2,
+                 grad_clip=None,
+                 start_steps=10000,
+                 training_log_interval=10,
+                 learning_log_interval=100,
+                 cuda=True,
+                 seed=0,
+                 ):
         self.env = env
         self.observation_shape = self.env.observation_space.shape
         self.action_shape = self.env.action_space.shape
@@ -73,19 +85,12 @@ class LatentTrainer:
         self.initial_latent_steps = initial_latent_steps
         self.num_sequences = num_sequences
         self.num_steps = num_steps
-        self.tau = tau
         self.batch_size = batch_size
         self.latent_batch_size = latent_batch_size
         self.start_steps = start_steps
-        self.gamma = gamma
-        self.entropy_tuning = entropy_tuning
         self.grad_clip = grad_clip
-        self.updates_per_step = updates_per_step
         self.training_log_interval = training_log_interval
         self.learning_log_interval = learning_log_interval
-        self.target_update_interval = target_update_interval
-        self.eval_interval = eval_interval
-        self.colab = colab
 
     def run(self):
         while True:

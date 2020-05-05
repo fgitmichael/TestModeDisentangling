@@ -19,31 +19,22 @@ def run():
 
     # Configs which are constant across all tasks.
     configs = {
-        'env_type': args.env_type,
         'num_steps': 3000000,
         'initial_latent_steps': 100000,
         'batch_size': 256,
         'latent_batch_size': 32,
         'num_sequences': 8,
-        'lr': 0.0003,
         'latent_lr': 0.0001,
         'feature_dim': 256,
         'latent1_dim': 32,
         'latent2_dim': 256,
         'hidden_units': [256, 256],
         'memory_size': 100000,
-        'gamma': 0.99,
-        'target_update_interval': 1,
-        'tau': 0.005,
-        'entropy_tuning': True,
-        'ent_coef': 0.2,  # It's ignored when entropy_tuning=True.
         'leaky_slope': 0.2,
         'grad_clip': None,
-        'updates_per_step': 1,
         'start_steps': 10000,
         'training_log_interval': 4,
         'learning_log_interval': 100,
-        'eval_interval': 10000,
         'cuda': args.cuda,
         'seed': args.seed
     }
