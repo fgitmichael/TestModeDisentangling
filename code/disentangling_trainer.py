@@ -193,8 +193,8 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Sample from prior dynamics
         (latent1_pri_samples, latent2_pri_samples, mode_pri_sample), \
-        (latent1_pri_dist, latent2_pri_dist, mode_pri_dist) = \
-            self.latent.sample_prior(actions_seq)
+        (latent1_pri_dists, latent2_pri_dists, mode_pri_dist) = \
+            self.latent.sample_prior(features_seq)
 
         # KL divergence losses
         kld_losses = calc_kl_divergence(mode_post_dist, mode_pri_dist) + \
