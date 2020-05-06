@@ -23,6 +23,19 @@ class BaseNetwork(nn.Module):
     def load(self, path):
         self.load_state_dict(torch.load(path))
 
+    def write_net_params(self, summary_writer, itr):
+        '''
+        params:
+            summary_writer :    tensorboard writer attribute
+            itr            :    iteration
+        '''
+        for name, weight in self.named_parameters():
+            summary_writer.add_histogram(name, weight, itr)
+            try:
+                summary_writer.add_histogram(f'{name}.grad', weight.grad, itr)
+            except:
+                print('%s could not be written to tensorboard' % name)
+
 
 def create_linear_network(input_dim, output_dim, hidden_units=[256, 256],
                           hidden_activation=nn.ReLU(), output_activation=None,

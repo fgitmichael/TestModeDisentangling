@@ -172,11 +172,9 @@ class DisentanglingTrainer(LatentTrainer):
         update_params(
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
-        # Log
-        if self.learning_steps % self.learning_log_interval == 0:
-            self.writer.add_scalar(
-                'loss/latent', latent_loss.detach().item(),
-                self.learning_steps)
+        # Write net params
+        if self._is_log(self.learning_log_interval//10):
+            self.latent.write_net_params(self.writer, self.learning_steps)
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
                          dones_seq):
@@ -209,32 +207,46 @@ class DisentanglingTrainer(LatentTrainer):
         # Loss
         latent_loss = kld_losses - log_likelihood_loss
 
-        if self.learning_steps % self.learning_log_interval == 0:
-            reconst_error = (
-                actions_seq - actions_seq_dists.loc
-            ).pow(2).mean(dim=(0,1)).sum().item()
-            self.writer.add_scalar(
-                'stats/reconst_error', reconst_error, self.learning_steps)
+        # Logging
+        if self._is_log(self.learning_log_interval):
+
+            # Reconstruction error
+            reconst_error = (actions_seq - actions_seq_dists.loc)\
+                .pow(2).mean(dim=(0,1)).sum()
+            self._summary_log('stats/reconst_error', reconst_error)
             print('reconstruction error: %f', reconst_error)
 
-        if self.learning_steps % self.learning_log_interval == 0:
+            # KL divergence
+            mode_kldiv = calc_kl_divergence([mode_post_dist], [mode_pri_dist])
+            seq_kldiv = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
+            kldiv = mode_kldiv + seq_kldiv
+            self._summary_log('stats/mode_kldiv', mode_kldiv)
+            self._summary_log('stats/seq_kldiv', seq_kldiv)
+            self._summary_log('stats/kldiv', kldiv)
+
+            # Log Likelyhood
+            self._summary_log('stats/log-likelyhood', log_likelihood_loss)
+
+            # Loss
+            self._summary_log('loss/network', latent_loss)
+
+            # Reconstruction test
             gt_actions = actions_seq[0].detach().cpu()
             post_actions = actions_seq_dists.loc[0].detach().cpu()
+            #with torch.no_grad():
+            #    pri_actions = self.latent.decoder(
+            #        [latent1_pri_samples[:1], latent2_pri_samples[:1]]
+            #    ).loc[0].detach().cpu()
+            #    cond_pri_samples, _ = self.latent.sample_prior(
+            #        features_seq[:1], actions_seq[:1, 0]
+            #    )
+            #    cond_pri_actions = self.latent.decoder(
+            #        cond_pri_samples.loc[0].detach().cpu()
+            #    )
 
-            with torch.no_grad():
-                pri_actions = self.latent.decoder(
-                    [latent1_pri_samples[:1], latent2_pri_samples[:1]]
-                ).loc[0].detach().cpu()
-                cond_pri_samples, _ = self.latent.sample_prior(
-                    features_seq[:1], actions_seq[:1, 0]
-                )
-                cond_pri_actions = self.latent.decoder(
-                    cond_pri_samples.loc[0].detach().cpu()
-                )
-
-            actions = torch.cat(
-                [gt_actions, post_actions, cond_pri_actions, pri_actions], dim=-2
-            )
+            #actions = torch.cat(
+            #    [gt_actions, post_actions, cond_pri_actions, pri_actions], dim=-2
+            #)
 
         return latent_loss
 
@@ -242,18 +254,11 @@ class DisentanglingTrainer(LatentTrainer):
         self.latent.save(os.path.join(self.model_dir, 'latent.pth'))
         #np.save(self.memory, os.path.join(self.model_dir, 'memory.pth'))
 
+    def _is_log(self, log_interval):
+        return True if self.learning_steps % log_interval == 0 else False
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def _summary_log(self, data_name, data):
+        if type(data) == torch.Tensor:
+            data = data.detach().cpu().item()
+        self.writer.add_scalar(data_name, data, self.learning_steps)
 
