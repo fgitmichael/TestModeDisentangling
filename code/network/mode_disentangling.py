@@ -20,7 +20,7 @@ class BiRnn(BaseNetwork):
                               bidirectional=True)
 
     def forward(self, x):
-        num_sequence = x.size(1)
+        num_sequence = x.size(0)
 
         # LSTM recursion and extraction of the ends of the two directions
         # (front: end of the forward pass, back: end of the backward pass)
