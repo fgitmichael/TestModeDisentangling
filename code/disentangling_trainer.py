@@ -170,8 +170,7 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Backprop
         update_params(
-            self.latent_optim, self.latent, latent_loss, self.grad_clip
-        )
+            self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         # Log
         if self.learning_steps % self.learning_log_interval == 0:
@@ -181,6 +180,7 @@ class DisentanglingTrainer(LatentTrainer):
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
                          dones_seq):
+        # Get features from images
         features_seq = self.latent.encoder(images_seq)
 
         # Sample from posterior dynamics
@@ -200,15 +200,13 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Log likelihood loss of generated actions
         mode_post_sample = mode_post_sample.unsqueeze(1)
-        mode_post_samples = mode_post_sample.expand(mode_post_sample.size(0),
-                                                    latent1_post_samples.size(1),
-                                                    mode_post_sample.size(2))
-        actions_seq_dists = self.latent.decoder([latent1_post_samples,
-                                                 latent2_post_samples,
-                                                 mode_post_samples])
-        log_likelihood_loss = actions_seq_dists.log_prob(
-            actions_seq).mean(dim=0).sum()
+        mode_post_samples = mode_post_sample.expand(
+            mode_post_sample.size(0), latent1_post_samples.size(1), mode_post_sample.size(2))
+        actions_seq_dists = self.latent.decoder(
+            [latent1_post_samples, latent2_post_samples, mode_post_samples])
+        log_likelihood_loss = actions_seq_dists.log_prob(actions_seq).mean(dim=0).sum()
 
+        # Loss
         latent_loss = kld_losses - log_likelihood_loss
 
         if self.learning_steps % self.learning_log_interval == 0:
