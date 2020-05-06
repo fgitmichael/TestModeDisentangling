@@ -184,7 +184,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         latent1_samples = torch.stack(latent1_samples, dim=1)
         latent2_samples = torch.stack(latent2_samples, dim=1)
 
-        mode_dist = self.mode_prior(features_seq[t])
+        mode_dist = self.mode_prior(features_seq[0])
         mode_sample = mode_dist.rsample()
 
         return (latent1_samples, latent2_samples, mode_sample), \
