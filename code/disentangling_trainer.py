@@ -1,18 +1,16 @@
 import os
-from collections import deque
 import numpy as np
 import torch
 from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 
-from memory import LazyMemory
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
 from utils import calc_kl_divergence, update_params, RunningMeanStats
-from PIL import Image
 
+# Needed for the loaded skill policy (Do not delete!)
 import rlkit.torch.sac.diayn
 
 
