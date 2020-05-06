@@ -201,7 +201,8 @@ class DisentanglingTrainer(LatentTrainer):
             calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
 
         # Log likelihood loss of generated actions
-        mode_post_samples = mode_post_sample.expand(latent1_post_samples.size(0),
+        mode_post_sample = mode_post_sample.unsqueeze(1)
+        mode_post_samples = mode_post_sample.expand(mode_post_sample.size(0),
                                                     latent1_post_samples.size(1),
                                                     mode_post_sample.size(2))
         actions_seq_dists = self.latent.decoder([latent1_post_samples,
