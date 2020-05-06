@@ -186,9 +186,8 @@ class DisentanglingTrainer(LatentTrainer):
         features_seq = self.latent.encoder(images_seq)
 
         # Sample from posterior dynamics
-        (latent1_post_samples, latent2_post_samples), \
-        (latent1_post_dists, latent2_post_dists), \
-        (mode_post_dist, mode_post_sample) = \
+        (latent1_post_samples, latent2_post_samples, mode_post_sample), \
+        (latent1_post_dists, latent2_post_dists, mode_post_dist) = \
             self.latent.sample_posterior(actions_seq=actions_seq,
                                          features_seq=features_seq)
 
