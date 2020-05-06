@@ -172,7 +172,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
                     [latent2_samples[t-1], features_seq[t-1]])
                 latent1_sample = latent1_dist.rsample()
                 # p(z2(t) | z1(t), z2(t-1), feature(t-1))
-                latent2_dists = self.latent2_prior(
+                latent2_dist = self.latent2_prior(
                     [latent1_sample, latent2_samples[t-1], features_seq[t-1]])
                 latent2_sample = latent2_dist.rsample()
 
