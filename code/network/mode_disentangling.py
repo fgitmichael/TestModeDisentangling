@@ -17,7 +17,7 @@ class BiRnn(BaseNetwork):
         # Note: batch_first=True means input and output dims are treated as
         #       (batch, seq, feature)
         self.f_lstm = nn.LSTM(input_dim, hidden_rnn_dim, 1,
-                              bidirectional=True, batch_first=True)
+                              bidirectional=True)
 
     def forward(self, x):
         num_sequence = x.size(1)
@@ -26,10 +26,11 @@ class BiRnn(BaseNetwork):
         # (front: end of the forward pass, back: end of the backward pass)
         lstm_out, _ = self.f_lstm(x)
         (forward_out, backward_out) = torch.chunk(lstm_out, 2, dim=2)
-        front = forward_out[:, 0, :]
-        back = backward_out[:, num_sequence-1, :]
+        front = forward_out[0,:, :]
+        back = backward_out[num_sequence-1, :, :]
 
-        return torch.cat([front, back], dim=2)
+        # Stack along hidden_dim and return
+        return torch.cat([front, back], dim=1)
 
 
 #TODO: Move this class as inner class to ModeDisentanglingNetwork as it is
@@ -49,14 +50,16 @@ class ModeEncoder(BaseNetwork):
         self.f_rnn_actions = BiRnn(action_shape,
                                    hidden_rnn_dim=hidden_rnn_dim)
 
-        self.f_dist = Gaussian(input_dim=2 * hidden_rnn_dim,
+        # Concatenation of 2*hidden_rnn_dim from the features rnn and
+        # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
+        self.f_dist = Gaussian(input_dim=4 * hidden_rnn_dim,
                                output_dim=output_dim,
                                hidden_units=[256, 256])
 
     def forward(self, features_seq, actions_seq):
         feat_res = self.f_rnn_features(features_seq)
         act_res = self.f_rnn_actions(actions_seq)
-        rnn_result = torch.cat([feat_res, act_res], dim=2)
+        rnn_result = torch.cat([feat_res, act_res], dim=1)
 
         # Feed result into Gaussian layer
         return self.f_dist(rnn_result)
