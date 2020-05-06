@@ -197,8 +197,8 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent.sample_prior(features_seq)
 
         # KL divergence losses
-        kld_losses = calc_kl_divergence(mode_post_dist, mode_pri_dist) + \
-            calc_kl_divergence(latent1_post_dists, latent1_pri_dist)
+        kld_losses = calc_kl_divergence([mode_post_dist], [mode_pri_dist]) + \
+            calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
 
         # Log likelihood loss of generated actions
         mode_post_samples = mode_post_sample.expand(latent1_post_samples.size(0),
