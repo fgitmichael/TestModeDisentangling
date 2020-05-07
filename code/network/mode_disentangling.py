@@ -41,21 +41,33 @@ class BiRnn(BaseNetwork):
 
         # Note: batch_first=True means input and output dims are treated as
         #       (batch, seq, feature)
-        self.f_lstm = nn.LSTM(input_dim, hidden_rnn_dim, 1,
+        self.input_dim = input_dim
+        self.hidden_rnn_dim = hidden_rnn_dim
+        self.f_lstm = nn.LSTM(self.input_dim, self.hidden_rnn_dim, 3,
                               bidirectional=True)
 
     def forward(self, x):
         num_sequence = x.size(0)
+        batch_size = x.size(1)
 
         # LSTM recursion and extraction of the ends of the two directions
         # (front: end of the forward pass, back: end of the backward pass)
         lstm_out, _ = self.f_lstm(x)
         (forward_out, backward_out) = torch.chunk(lstm_out, 2, dim=2)
-        front = forward_out[0,:, :]
-        back = backward_out[num_sequence-1, :, :]
+        self.test_dim(x, forward_out, backward_out)
+
+        front = forward_out[num_sequence-1, :, :]
+        back = backward_out[0, :, :]
 
         # Stack along hidden_dim and return
         return torch.cat([front, back], dim=1)
+
+    def test_dim(self, x, forward_out, backward_out):
+        num_sequence = x.size(0)
+        batch_size = x.size(1)
+        assert forward_out.shape == \
+               backward_out.shape == \
+               (num_sequence, batch_size, self.hidden_rnn_dim)
 
 
 #TODO: Move this class as inner class to ModeDisentanglingNetwork as it is
@@ -265,6 +277,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
         latent1_samples = torch.stack(latent1_samples, dim=1)
         latent2_samples = torch.stack(latent2_samples, dim=1)
 
+        assert features_seq.size(0) == num_sequences
+        assert actions_seq.size(0) == num_sequences + 1
         mode_dist = self.mode_posterior(features_seq=features_seq,
                                         actions_seq=actions_seq)
         mode_sample = mode_dist.rsample()
