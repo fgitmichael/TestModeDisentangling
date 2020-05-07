@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import tqdm
 from torch.optim import Adam
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 from memory import LazyMemory
 from network import LatentNetwork, GaussianPolicy
