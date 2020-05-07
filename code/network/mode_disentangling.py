@@ -36,7 +36,7 @@ class BiRnn(BaseNetwork):
 
     def __init__(self,
                  input_dim,
-                 hidden_rnn_dim=512):
+                 hidden_rnn_dim):
         super(BiRnn, self).__init__()
 
         # Note: batch_first=True means input and output dims are treated as
@@ -66,7 +66,7 @@ class ModeEncoder(BaseNetwork):
                  feature_shape,
                  action_shape,
                  output_dim,  # typically mode_dim
-                 hidden_rnn_dim=512
+                 hidden_rnn_dim
                  ):
         super(ModeEncoder, self).__init__()
 
@@ -98,7 +98,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  feature_dim=256,
                  latent1_dim=32,
                  latent2_dim=256,
-                 mode_dim=256,
+                 mode_dim=556,
                  hidden_units=[256, 256],
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
