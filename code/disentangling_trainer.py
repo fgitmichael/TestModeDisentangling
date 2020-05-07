@@ -258,4 +258,5 @@ class DisentanglingTrainer(LatentTrainer):
         #if type(data) == torch.Tensor:
         #    data = data.detach().cpu().item()
         #self.writer.add_scalar(data_name, data, self.learning_steps)
+        pass
 
