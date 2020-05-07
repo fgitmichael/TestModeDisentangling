@@ -32,7 +32,8 @@ def run():
         'logs',
         'disentangling',
         dir_name,
-        f'slac-seed{args.seed}-{datetime.now().strftime("%Y%m%d-%H%M")}')
+        f'slac-seed{args.seed}-{datetime.now().strftime("%Y%m%d-%H%M")}'
+    )
 
     agent = DisentanglingTrainer(env=env,
                           log_dir=log_dir,

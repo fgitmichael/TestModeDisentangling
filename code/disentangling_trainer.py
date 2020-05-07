@@ -13,14 +13,13 @@ from utils import calc_kl_divergence, update_params, RunningMeanStats
 # Needed for the loaded skill policy (Do not delete!)
 import rlkit.torch.sac.diayn
 
-
 class DisentanglingTrainer(LatentTrainer):
     def __init__(self,
                  env,
                  log_dir,
                  skill_policy_path,
                  seed,
-                 num_sequences=50,
+                 num_sequences=15,
                  cuda=False
                  ):
         parent_kwargs = dict(
@@ -31,8 +30,8 @@ class DisentanglingTrainer(LatentTrainer):
             num_sequences = num_sequences,
             latent_lr = 0.0001,
             feature_dim = 256,
-            latent1_dim = 32,
-            latent2_dim = 256,
+            latent1_dim = 5,
+            latent2_dim = 30,
             hidden_units = [256, 256],
             memory_size = 1e5,
             leaky_slope = 0.2,
@@ -42,11 +41,6 @@ class DisentanglingTrainer(LatentTrainer):
             learning_log_interval = 100,
             cuda = cuda,
             seed = seed)
-
-        # Hyperparameters
-        self.hparams = dict(
-            num_sequences = num_sequences
-        )
 
         # Environment
         self.env = env
@@ -173,7 +167,7 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         # Write net params
-        if self._is_log(self.learning_log_interval//10):
+        if self._is_log(self.learning_log_interval//2):
             self.latent.write_net_params(self.writer, self.learning_steps)
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
@@ -229,6 +223,9 @@ class DisentanglingTrainer(LatentTrainer):
 
             # Loss
             self._summary_log('loss/network', latent_loss)
+
+            # Save Model
+            self.latent.save(os.path.join(self.model_dir, 'model.pth'))
 
             # Reconstruction test
             gt_actions = actions_seq[0].detach().cpu()
