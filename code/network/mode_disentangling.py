@@ -78,7 +78,7 @@ class ModeEncoder(BaseNetwork):
                  feature_shape,
                  action_shape,
                  output_dim,  # typically mode_dim
-                 hidden_rnn_dim
+                 hidden_rnn_dim=100
                  ):
         super(ModeEncoder, self).__init__()
 
