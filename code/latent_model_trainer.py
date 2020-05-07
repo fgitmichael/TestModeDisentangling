@@ -76,7 +76,7 @@ class LatentTrainer:
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
 
-        self.writer = SummaryWriter(log_dir=self.summary_dir)
+        #self.writer = SummaryWriter(log_dir=self.summary_dir)
         self.train_rewards = RunningMeanStats(training_log_interval)
 
         self.steps = 0
@@ -172,8 +172,9 @@ class LatentTrainer:
             action_deque.append(action)
 
         if self.episodes % self.training_log_interval == 0:
-            self.writer.add_scalar(
-                'reward/train', self.train_rewards.get(), self.steps)
+            #self.writer.add_scalar(
+            #    'reward/train', self.train_rewards.get(), self.steps)
+            pass
 
         print(f'episode: {self.episodes:<4}  '
               f'episode steps: {episode_steps:<4}  ')
@@ -187,9 +188,10 @@ class LatentTrainer:
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         if self.learning_steps % self.learning_log_interval == 0:
-            self.writer.add_scalar(
-                'loss/latent', latent_loss.detach().item(),
-                self.learning_steps)
+            #self.writer.add_scalar(
+            #    'loss/latent', latent_loss.detach().item(),
+            #    self.learning_steps)
+            pass
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
                          dones_seq):
@@ -220,8 +222,8 @@ class LatentTrainer:
             reconst_error = (
                     images_seq - images_seq_dists.loc
             ).pow(2).mean(dim=(0, 1)).sum().item()
-            self.writer.add_scalar(
-                'stats/reconst_error', reconst_error, self.learning_steps)
+            #self.writer.add_scalar(
+            #    'stats/reconst_error', reconst_error, self.learning_steps)
 
         if self.learning_steps % self.learning_log_interval == 0:
             gt_images = images_seq[0].detach().cpu()
@@ -252,9 +254,9 @@ class LatentTrainer:
 
             # Visualize multiple of 8 images because each row contains 8
             # images at most.
-            self.writer.add_images(
-                'images/gt_posterior_cond-prior_prior',
-                images[:(len(images) // 8) * 8], self.learning_steps)
+            #self.writer.add_images(
+            #    'images/gt_posterior_cond-prior_prior',
+            #    images[:(len(images) // 8) * 8], self.learning_steps)
 
         return latent_loss
 
@@ -267,5 +269,5 @@ class LatentTrainer:
         pass
 
     def __del__(self):
-        self.writer.close()
+        #self.writer.close()
         self.env.close()
