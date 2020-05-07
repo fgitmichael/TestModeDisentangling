@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from torch.optim import Adam
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
@@ -98,7 +98,7 @@ class DisentanglingTrainer(LatentTrainer):
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
 
-        self.writer = SummaryWriter(log_dir=self.summary_dir)
+        #self.writer = SummaryWriter(log_dir=self.summary_dir)
         self.steps = 0
         self.learning_steps = 0
         self.episodes = 0
@@ -167,8 +167,8 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         # Write net params
-        if self._is_log(self.learning_log_interval//2):
-            self.latent.write_net_params(self.writer, self.learning_steps)
+        #if self._is_log(self.learning_log_interval//2):
+        #    self.latent.write_net_params(self.writer, self.learning_steps)
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
                          dones_seq):
@@ -255,7 +255,7 @@ class DisentanglingTrainer(LatentTrainer):
         return True if self.learning_steps % log_interval == 0 else False
 
     def _summary_log(self, data_name, data):
-        if type(data) == torch.Tensor:
-            data = data.detach().cpu().item()
-        self.writer.add_scalar(data_name, data, self.learning_steps)
+        #if type(data) == torch.Tensor:
+        #    data = data.detach().cpu().item()
+        #self.writer.add_scalar(data_name, data, self.learning_steps)
 
