@@ -7,6 +7,31 @@ from torch.distributions import Normal
 from .base import BaseNetwork, create_linear_network, weights_init_xavier
 from .latent import Gaussian, ConstantGaussian, Decoder, Encoder
 
+
+class LogvarGaussian(Gaussian):
+    '''
+    Only difference to Gaussian should be the way the variance is
+    calculated
+    '''
+    def __init__(self, **kwargs):
+        # Call base constructor
+        super(LogvarGaussian, self).__init__(**kwargs)
+
+    def forward(self, x):
+        if isinstance(x, list) or isinstance(x, tuple):
+            x = torch.cat(x, dim=-1)
+
+        x = self.net(x)
+        if self.std:
+            mean = x
+            std = torch.ones_like(mean) * self.std
+        else:
+            mean, logstd = torch.chunk(x, 2, dim=-1)
+            std = torch.exp(logstd)
+
+        return Normal(loc=mean, scale=std)
+
+
 class BiRnn(BaseNetwork):
 
     def __init__(self,
