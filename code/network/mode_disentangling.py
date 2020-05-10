@@ -107,11 +107,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
     def __init__(self,
                  observation_shape,
                  action_shape,
-                 feature_dim=256,
-                 latent1_dim=32,
-                 latent2_dim=256,
-                 mode_dim=556,
-                 hidden_units=[256, 256],
+                 feature_dim,
+                 latent1_dim,
+                 latent2_dim,
+                 mode_dim,
+                 hidden_units,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
         '''
