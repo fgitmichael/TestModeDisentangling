@@ -7,11 +7,36 @@ from torch.distributions import Normal
 from .base import BaseNetwork, create_linear_network, weights_init_xavier
 from .latent import Gaussian, ConstantGaussian, Decoder, Encoder
 
+
+class LogvarGaussian(Gaussian):
+    '''
+    Only difference to Gaussian should be the way the variance is
+    calculated
+    '''
+    def __init__(self, **kwargs):
+        # Call base constructor
+        super(LogvarGaussian, self).__init__(**kwargs)
+
+    def forward(self, x):
+        if isinstance(x, list) or isinstance(x, tuple):
+            x = torch.cat(x, dim=-1)
+
+        x = self.net(x)
+        if self.std:
+            mean = x
+            std = torch.ones_like(mean) * self.std
+        else:
+            mean, logstd = torch.chunk(x, 2, dim=-1)
+            std = torch.exp(logstd)
+
+        return Normal(loc=mean, scale=std)
+
+
 class BiRnn(BaseNetwork):
 
     def __init__(self,
                  input_dim,
-                 hidden_rnn_dim=512):
+                 hidden_rnn_dim):
         super(BiRnn, self).__init__()
 
         # Note: batch_first=True means input and output dims are treated as
@@ -26,8 +51,10 @@ class BiRnn(BaseNetwork):
         # (front: end of the forward pass, back: end of the backward pass)
         lstm_out, _ = self.f_lstm(x)
         (forward_out, backward_out) = torch.chunk(lstm_out, 2, dim=2)
-        front = forward_out[0,:, :]
-        back = backward_out[num_sequence-1, :, :]
+        self.test_dim(x, forward_out, backward_out)
+
+        front = forward_out[num_sequence-1, :, :]
+        back = backward_out[0, :, :]
 
         # Stack along hidden_dim and return
         return torch.cat([front, back], dim=1)
@@ -70,11 +97,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
     def __init__(self,
                  observation_shape,
                  action_shape,
-                 feature_dim=256,
-                 latent1_dim=32,
-                 latent2_dim=256,
-                 mode_dim=256,
-                 hidden_units=[256, 256],
+                 feature_dim,
+                 latent1_dim,
+                 latent2_dim,
+                 mode_dim,
+                 hidden_units,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
         '''
@@ -119,6 +146,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.encoder = Encoder(
             observation_shape[0], feature_dim, leaky_slope=leaky_slope)
 
+        # p(u(t) | z2(t), z1(t), m)
         self.decoder = Gaussian(
             latent1_dim + latent2_dim + mode_dim,
             action_shape[0],
@@ -240,6 +268,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
         latent1_samples = torch.stack(latent1_samples, dim=1)
         latent2_samples = torch.stack(latent2_samples, dim=1)
 
+        assert features_seq.size(0) == num_sequences
+        assert actions_seq.size(0) == num_sequences + 1
         mode_dist = self.mode_posterior(features_seq=features_seq,
                                         actions_seq=actions_seq)
         mode_sample = mode_dist.rsample()
