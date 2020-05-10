@@ -51,7 +51,6 @@ class BiRnn(BaseNetwork):
         # (front: end of the forward pass, back: end of the backward pass)
         lstm_out, _ = self.f_lstm(x)
         (forward_out, backward_out) = torch.chunk(lstm_out, 2, dim=2)
-        self.test_dim(x, forward_out, backward_out)
 
         front = forward_out[num_sequence-1, :, :]
         back = backward_out[0, :, :]
