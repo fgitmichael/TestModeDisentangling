@@ -156,6 +156,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.encoder = Encoder(
             observation_shape[0], feature_dim, leaky_slope=leaky_slope)
 
+        # p(u(t) | z2(t), z1(t), m)
         self.decoder = Gaussian(
             latent1_dim + latent2_dim + mode_dim,
             action_shape[0],
