@@ -1,9 +1,11 @@
 import os
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
+
 
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
@@ -228,8 +230,19 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent.save(os.path.join(self.model_dir, 'model.pth'))
 
             # Reconstruction test
-            gt_actions = actions_seq[0].detach().cpu()
-            post_actions = actions_seq_dists.loc[0].detach().cpu()
+            rand_batch = np.random.choice(actions_seq.size(0))
+            action_dim = actions_seq.size(2)
+            gt_actions = actions_seq[rand_batch].detach().cpu()
+            post_actions = actions_seq_dists.loc[rand_batch].detach().cpu()
+            for dim in range(action_dim):
+                plt.interactive(False)
+                plt.plot(gt_actions[:, dim].numpy())
+                plt.plot(post_actions[:, dim].numpy())
+                fig = plt.gcf()
+                self.writer.add_figure('Reconstruction test dim'+str(dim), fig,
+                                        global_step=self.learning_steps )
+                plt.clf()
+
             #with torch.no_grad():
             #    pri_actions = self.latent.decoder(
             #        [latent1_pri_samples[:1], latent2_pri_samples[:1]]
