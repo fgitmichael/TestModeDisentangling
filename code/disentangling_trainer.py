@@ -32,9 +32,9 @@ class DisentanglingTrainer(LatentTrainer):
             num_sequences = num_sequences,
             latent_lr = 0.0001,
             feature_dim = 256,
-            latent1_dim = 5,
-            latent2_dim = 30,
-            hidden_units = [256, 256],
+            latent1_dim = 2,
+            latent2_dim = 8,
+            hidden_units = [56, 56],
             memory_size = 1e5,
             leaky_slope = 0.2,
             grad_clip = None,
@@ -67,6 +67,7 @@ class DisentanglingTrainer(LatentTrainer):
             feature_dim=parent_kwargs['feature_dim'],
             latent1_dim=parent_kwargs['latent1_dim'],
             latent2_dim=parent_kwargs['latent2_dim'],
+            mode_dim=500,
             hidden_units=parent_kwargs['hidden_units'],
             leaky_slope=parent_kwargs['leaky_slope']
         ).to(self.device)

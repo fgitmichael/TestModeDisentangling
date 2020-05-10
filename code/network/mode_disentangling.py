@@ -43,7 +43,7 @@ class BiRnn(BaseNetwork):
         #       (batch, seq, feature)
         self.input_dim = input_dim
         self.hidden_rnn_dim = hidden_rnn_dim
-        self.f_lstm = nn.LSTM(self.input_dim, self.hidden_rnn_dim, 3,
+        self.f_lstm = nn.GRU(self.input_dim, self.hidden_rnn_dim, 1,
                               bidirectional=True)
 
     def forward(self, x):
@@ -78,7 +78,7 @@ class ModeEncoder(BaseNetwork):
                  feature_shape,
                  action_shape,
                  output_dim,  # typically mode_dim
-                 hidden_rnn_dim=100
+                 hidden_rnn_dim=10
                  ):
         super(ModeEncoder, self).__init__()
 
@@ -91,7 +91,7 @@ class ModeEncoder(BaseNetwork):
         # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
         self.f_dist = Gaussian(input_dim=4 * hidden_rnn_dim,
                                output_dim=output_dim,
-                               hidden_units=[256, 256])
+                               hidden_units=[6, 6, 6])
 
     def forward(self, features_seq, actions_seq):
         feat_res = self.f_rnn_features(features_seq)
