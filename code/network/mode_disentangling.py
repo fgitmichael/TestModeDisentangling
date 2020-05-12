@@ -119,6 +119,77 @@ class ModeEncoder(BaseNetwork):
         return self.f_dist(rnn_result)
 
 
+#class BiRnn_v2(BaseNetwork):
+#
+#    def __init__(self,
+#                 input_dim,
+#                 hidden_rnn_dim,
+#                 num_layers=1):
+#        super(BiRnn_v2, self).__init__()
+#
+#        self.f_rnn = nn.GRU(input_size=input_dim,
+#                            hidden_size=hidden_rnn_dim,
+#                            num_layers=num_layers,
+#                            bidirectional=True)
+#
+#    def forward(self, x):
+#        # LSTM recursion and extraction of the ends of the two directions
+#        # (front: end of the forward pass, back: end of the backward pass)
+#        lstm_out, _ = self.f_rnn(x)
+#
+#        return lstm_out
+#
+#
+#class ModeEncoder_v2(BaseNetwork):
+#
+#    def __init__(self,
+#                 feature_shape,
+#                 action_shape,
+#                 output_dim, # typically mode_dim
+#                 seq_len,
+#                 hidden_rnn_dim=10,
+#                 num_layers=1,
+#                 hidden_units_gauss=[256, 256],
+#                 ):
+#        super(ModeEncoder_v2, self).__init__()
+#
+#        self.f_rnn_features = BiRnn_v2(feature_shape,
+#                                       hidden_rnn_dim=hidden_rnn_dim,
+#                                       num_layers=num_layers)
+#        self.f_rnn_actions = BiRnn_v2(action_shape,
+#                                      hidden_rnn_dim=hidden_rnn_dim,
+#                                      num_layers=num_layers)
+#        self.seq_feature_extractor = create_linear_network(seq_len + 1, 1,
+#                                                           hidden_units=hidden_units_gauss)
+#
+#        self.f_dist = Gaussian(input_dim=4*hidden_rnn_dim,
+#                               output_dim=output_dim,
+#                               hidden_units=hidden_units_gauss)
+#
+#    def forward(self, features_seq, actions_seq):
+#        # Get result of RNN
+#        feat_rnn_res = self.f_rnn_features(features_seq)
+#        act_rnn_res = self.f_rnn_actions(actions_seq)
+#
+#        # Since feature sequences are always of length S-1 zeros are added)
+#        hidden_rnn_dim = self.f_rnn_actions.f_rnn.hidden_size
+#        seq_dim = 0
+#        num_seq_feat = feat_rnn_res.size(seq_dim)
+#        num_seq_act = act_rnn_res.size(seq_dim)
+#        zero_add = torch.zeros(num_seq_act-num_seq_feat,
+#                               feat_rnn_res.size(1),
+#                               feat_rnn_res.size(2)).to(feat_rnn_res.device)
+#        feat_rnn_res = torch.cat([feat_rnn_res, zero_add], dim=seq_dim)
+#        rnn_result = torch.cat([feat_rnn_res, act_rnn_res], dim=2)
+#
+#        # Extract features from sequences
+#        seq_features = self.seq_feature_extractor(torch.transpose(rnn_result, 2, 0))
+#        seq_features = seq_features.transpose(2, 0).squeeze()
+#
+#        # Feed results into Gaussian layer
+#        return self.f_dist(seq_features)
+
+
 class ModeDisentanglingNetwork(BaseNetwork):
 
     def __init__(self,
@@ -138,6 +209,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
               RL-environment, even though the observations serve in this
               network as actions
         '''
+
+        self.num_sequences = num_sequences
 
         # p(z1(0)) = N(0, I)
         self.latent1_init_prior = ConstantGaussian(latent1_dim)
