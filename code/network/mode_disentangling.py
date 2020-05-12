@@ -36,7 +36,8 @@ class BiRnn(BaseNetwork):
 
     def __init__(self,
                  input_dim,
-                 hidden_rnn_dim):
+                 hidden_rnn_dim,
+                 learn_initial_state=True):
         super(BiRnn, self).__init__()
 
         # Note: batch_first=True means input and output dims are treated as
@@ -78,7 +79,7 @@ class ModeEncoder(BaseNetwork):
                  feature_shape,
                  action_shape,
                  output_dim,  # typically mode_dim
-                 hidden_rnn_dim=10
+                 hidden_rnn_dim
                  ):
         super(ModeEncoder, self).__init__()
 
@@ -90,8 +91,7 @@ class ModeEncoder(BaseNetwork):
         # Concatenation of 2*hidden_rnn_dim from the features rnn and
         # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
         self.f_dist = Gaussian(input_dim=4 * hidden_rnn_dim,
-                               output_dim=output_dim,
-                               hidden_units=[6, 6, 6])
+                               output_dim=output_dim)
 
     def forward(self, features_seq, actions_seq):
         feat_res = self.f_rnn_features(features_seq)
@@ -112,6 +112,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  latent2_dim,
                  mode_dim,
                  hidden_units,
+                 num_sequences,
+                 hidden_rnn_dim,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
         '''
@@ -149,8 +151,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.latent2_posterior = self.latent2_prior
         # q(m | features(1:T-1), actions(1:T))
         self.mode_posterior = ModeEncoder(feature_dim,
-                                          action_shape[0],
-                                          mode_dim)
+                                             action_shape[0],
+                                             output_dim=mode_dim,
+                                             hidden_rnn_dim=hidden_rnn_dim,
+                                             #seq_len=self.num_sequences,
+                                             )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
         self.encoder = Encoder(
