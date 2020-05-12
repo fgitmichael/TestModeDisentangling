@@ -62,16 +62,22 @@ class BiRnn(BaseNetwork):
         batch_size = x.size(1)
 
         # Initial state (dim: num_layers * num_directions, batch, hidden_size)
-        num_directions = 2 if self.f_rnn.bidirectional else 1
-        input = torch.ones(self.f_rnn.num_layers*num_directions,
-                           batch_size,
-                           1).to(x.device)
-        hidden_init = self.init_network(input).rsample()
+        if self.learn_init:
+            num_directions = 2 if self.f_rnn.bidirectional else 1
+            input = torch.ones(self.f_rnn.num_layers*num_directions,
+                               batch_size,
+                               1).to(x.device)
+            hidden_init = self.init_network(input).rsample()
 
-        # LSTM recursion and extraction of the ends of the two directions
-        # (front: end of the forward pass, back: end of the backward pass)
-        lstm_out, _ = self.f_rnn(x, hidden_init)
-        (forward_out, backward_out) = torch.chunk(lstm_out, 2, dim=2)
+            # LSTM recursion and extraction of the ends of the two directions
+            # (front: end of the forward pass, back: end of the backward pass)
+            rnn_out, _ = self.f_rnn(x, hidden_init)
+        else:
+            # Don't use learned initial state and rely on pytorch init
+            rnn_out, _ = self.f_rnn(x)
+
+        # Split into the two directions
+        (forward_out, backward_out) = torch.chunk(rnn_out, 2, dim=2)
 
         # Get the ends of the two directions
         front = forward_out[num_sequence-1, :, :]
