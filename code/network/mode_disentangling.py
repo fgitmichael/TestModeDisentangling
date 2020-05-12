@@ -40,23 +40,40 @@ class BiRnn(BaseNetwork):
                  learn_initial_state=True):
         super(BiRnn, self).__init__()
 
+        # RNN
         # Note: batch_first=True means input and output dims are treated as
         #       (batch, seq, feature)
         self.input_dim = input_dim
         self.hidden_rnn_dim = hidden_rnn_dim
-        self.f_lstm = nn.GRU(self.input_dim, self.hidden_rnn_dim, 1,
+        self.f_rnn = nn.GRU(self.input_dim, self.hidden_rnn_dim, 1,
                               bidirectional=True)
+
+        # Noisy hidden init state
+        # Note: Only works with GRU right now
+        self.learn_init = learn_initial_state
+        if self.learn_init:
+            # Initial state (dim: num_layers * num_directions, batch, hidden_size)
+            self.init_network = Gaussian(input_dim=1,
+                                         output_dim=self.f_rnn.hidden_size,
+                                         hidden_units=[256])
 
     def forward(self, x):
         num_sequence = x.size(0)
         batch_size = x.size(1)
 
+        # Initial state (dim: num_layers * num_directions, batch, hidden_size)
+        num_directions = 2 if self.f_rnn.bidirectional else 1
+        input = torch.ones(self.f_rnn.num_layers*num_directions,
+                           batch_size,
+                           1).to(x.device)
+        hidden_init = self.init_network(input).rsample()
+
         # LSTM recursion and extraction of the ends of the two directions
         # (front: end of the forward pass, back: end of the backward pass)
-        lstm_out, _ = self.f_lstm(x)
+        lstm_out, _ = self.f_rnn(x, hidden_init)
         (forward_out, backward_out) = torch.chunk(lstm_out, 2, dim=2)
-        self.test_dim(x, forward_out, backward_out)
 
+        # Get the ends of the two directions
         front = forward_out[num_sequence-1, :, :]
         back = backward_out[0, :, :]
 
