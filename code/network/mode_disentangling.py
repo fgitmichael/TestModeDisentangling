@@ -101,6 +101,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  latent2_dim,
                  mode_dim,
                  hidden_units,
+                 num_sequences,
+                 hidden_rnn_dim,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
         '''
@@ -138,8 +140,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.latent2_posterior = self.latent2_prior
         # q(m | features(1:T-1), actions(1:T))
         self.mode_posterior = ModeEncoder(feature_dim,
-                                          action_shape[0],
-                                          mode_dim)
+                                             action_shape[0],
+                                             output_dim=mode_dim,
+                                             hidden_rnn_dim=hidden_rnn_dim,
+                                             #seq_len=self.num_sequences,
+                                             )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
         self.encoder = Encoder(

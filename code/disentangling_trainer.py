@@ -70,6 +70,8 @@ class DisentanglingTrainer(LatentTrainer):
             latent2_dim=parent_kwargs['latent2_dim'],
             mode_dim=500,
             hidden_units=parent_kwargs['hidden_units'],
+            hidden_rnn_dim=parent_kwargs['hidden_rnn_dim'],
+            num_sequences=parent_kwargs['num_sequences'],
             leaky_slope=parent_kwargs['leaky_slope']
         ).to(self.device)
 
