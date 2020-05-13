@@ -234,11 +234,15 @@ class DisentanglingTrainer(LatentTrainer):
         (_, _, mode_post_dist_im) = \
             self.latent.sample_posterior(actions_seq=action_seq_dists_gen.rsample(),
                                          features_seq=features_seq)
-        loss_im = mode_post_dist_im.log_prob(mode_pri_sample)
-        mi = loss_im + mode_pri_dist.entropy()
+        loss_im = mode_post_dist_im.log_prob(mode_pri_sample).sum(dim=1).mean()
+        mode_pri_entropy = mode_pri_dist.entropy().sum(dim=1).mean()
+        mi = loss_im + mode_pri_entropy
+        self._summary_log('mi/mutual information', mi)
+        self._summary_log('mi/conditional entropy', -loss_im)
+        self._summary_log('mi/entropy', mode_pri_entropy)
 
         # Loss
-        latent_loss = kld_losses - log_likelihood_loss
+        latent_loss = kld_losses - log_likelihood_loss - loss_im
 
         # Logging
         if self._is_log(self.learning_log_interval):
@@ -256,7 +260,6 @@ class DisentanglingTrainer(LatentTrainer):
             self._summary_log('stats/mode_kldiv', mode_kldiv)
             self._summary_log('stats/seq_kldiv', seq_kldiv)
             self._summary_log('stats/kldiv', kldiv)
-            self._summary_log(('stats/mutual information', mi))
 
             # Log Likelyhood
             self._summary_log('stats/log-likelyhood', log_likelihood_loss)
