@@ -152,10 +152,6 @@ class DisentanglingTrainer(LatentTrainer):
                     print('Finished learning the disentangled model')
                     print('-' * 60)
 
-        #if self.episodes % self.training_log_interval == 0:
-        #    self.writer.add_scalar(
-        #        'reward/train', self.train_rewards.get(), self.steps)
-
         print(f'episode: {self.episodes:<4}  '
               f'episode steps: {episode_steps:<4}  ')
         self.save_models()
