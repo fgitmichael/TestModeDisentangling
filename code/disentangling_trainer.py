@@ -211,6 +211,32 @@ class DisentanglingTrainer(LatentTrainer):
             [latent1_post_samples, latent2_post_samples, mode_post_samples])
         log_likelihood_loss = actions_seq_dists.log_prob(actions_seq).mean(dim=0).sum()
 
+
+        # Mutual Information Loss
+        '''
+        Implementation similar to InfoGAN Loss
+        m is sample from the mode prior
+        u_1:T is the action_seq generated using the generative model 
+        '''
+        # Generated action_seq (u ~ p(u|m,z))
+        mode_pri_samples = broadcast_mode_sample(mode_pri_sample,
+                                                 bdim=1,
+                                                 sizes=(mode_pri_sample.size(0),
+                                                    latent1_pri_samples.size(1),
+                                                    mode_pri_sample.size(1))
+                                                 )
+        action_seq_dists_gen = self.latent.decoder(
+            [latent1_pri_samples, latent2_pri_samples, mode_pri_samples]
+        )
+
+        # "Q(m|u)" - Marginalization of the posterior
+        (_, _, _), \
+        (_, _, mode_post_dist_im) = \
+            self.latent.sample_posterior(actions_seq=action_seq_dists_gen.rsample(),
+                                         features_seq=features_seq)
+        loss_im = mode_post_dist_im.log_prob(mode_pri_sample)
+        mi = loss_im + mode_pri_dist.entropy()
+
         # Loss
         latent_loss = kld_losses - log_likelihood_loss
 
@@ -230,6 +256,7 @@ class DisentanglingTrainer(LatentTrainer):
             self._summary_log('stats/mode_kldiv', mode_kldiv)
             self._summary_log('stats/seq_kldiv', seq_kldiv)
             self._summary_log('stats/kldiv', kldiv)
+            self._summary_log(('stats/mutual information', mi))
 
             # Log Likelyhood
             self._summary_log('stats/log-likelyhood', log_likelihood_loss)
