@@ -40,6 +40,7 @@ class DisentanglingTrainer(LatentTrainer):
             leaky_slope = 0.2,
             grad_clip = None,
             start_steps = 10000,
+            hidden_rnn_dim = 100,
             training_log_interval = 10,
             learning_log_interval = 100,
             cuda = cuda,
