@@ -212,7 +212,7 @@ class DisentanglingTrainer(LatentTrainer):
         log_likelihood_loss = actions_seq_dists.log_prob(actions_seq).mean(dim=0).sum()
 
 
-        # Mutual Information Loss
+        # Mutual Information I(m;u)
         '''
         Implementation similar to InfoGAN Loss
         m is sample from the mode prior
@@ -231,18 +231,43 @@ class DisentanglingTrainer(LatentTrainer):
 
         # "Q(m|u)" - Marginalization of the posterior
         (_, _, _), \
-        (_, _, mode_post_dist_im) = \
+        (latent1_post_dists_im, latent2_post_dists_im, mode_post_dist_im) = \
             self.latent.sample_posterior(actions_seq=action_seq_dists_gen.rsample(),
                                          features_seq=features_seq)
-        loss_im = mode_post_dist_im.log_prob(mode_pri_sample).sum(dim=1).mean()
+
+        # Conditional entropies
+        minus_cond_entropy_m_u = mode_post_dist_im.log_prob(mode_pri_sample).sum(dim=1).mean()
+        minus_cond_entropy_m_z = 0
+        for idx, dist in enumerate(latent1_post_dists_im):
+            minus_cond_entropy_m_z += \
+                latent1_post_dists_im[idx].log_prob(latent1_pri_samples[:, idx, :])\
+                    .sum(dim=1).mean() + \
+                latent2_post_dists_im[idx].log_prob(latent2_pri_samples[:, idx, :])\
+                    .sum(dim=1).mean()
+
+        # Entropies
         mode_pri_entropy = mode_pri_dist.entropy().sum(dim=1).mean()
-        mi = loss_im + mode_pri_entropy
-        self._summary_log('mi/mutual information', mi)
-        self._summary_log('mi/conditional entropy', -loss_im)
-        self._summary_log('mi/entropy', mode_pri_entropy)
+        dyn_pri_entropy = 0
+        for dist1, dist2 in zip(latent1_pri_dists, latent2_pri_dists):
+            dyn_pri_entropy += \
+                dist1.entropy().sum(dim=1).mean() + \
+                dist2.entropy().sum(dim=1).mean()
+
+        # Mutual Infos
+        I_mu = minus_cond_entropy_m_u + mode_pri_entropy
+        I_zu = minus_cond_entropy_m_z + dyn_pri_entropy
+
+        # Logging
+        self._summary_log('MI_mu/mutual information I(m;u)', I_mu)
+        self._summary_log('MI_mu/conditional entropy H(m|u)', -minus_cond_entropy_m_u)
+        self._summary_log('MI_mu/entropy H(m)', mode_pri_entropy)
+        self._summary_log('MI_zu/mutual information I(z;u)', I_zu)
+        self._summary_log('MI_zu/conditional entropy H(z|u)', -minus_cond_entropy_m_z)
+        self._summary_log('MI_zu/entropy H(z)', dyn_pri_entropy)
 
         # Loss
-        latent_loss = kld_losses - log_likelihood_loss - loss_im
+        latent_loss = kld_losses - log_likelihood_loss
+        #              + minus_cond_entropy_m_u - minus_cond_entropy_m_z
 
         # Logging
         if self._is_log(self.learning_log_interval):
