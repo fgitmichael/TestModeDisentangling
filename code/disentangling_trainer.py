@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
+from itertools import chain
+
 
 
 from memory.memory_disentangling import MyMemoryDisentangling
@@ -83,6 +85,12 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Optimization
         self.latent_optim = Adam(self.latent.parameters(), lr=parent_kwargs['latent_lr'])
+        lr_mi = 0.0001
+        self.optim_mi = Adam(chain(self.latent.latent2_mi_posterior.parameters(),
+                                   self.latent.latent1_mi_posterior.parameters(),
+                                   self.latent.latent2_init_mi_posterior.parameters(),
+                                   self.latent.latent1_init_mi_posterior.parameters()),
+                             lr=lr_mi)
 
         # Memory
         self.memory = MyMemoryDisentangling(
@@ -230,16 +238,17 @@ class DisentanglingTrainer(LatentTrainer):
         )
 
         # "Q(m|u)" - Marginalization of the posterior
+        action_seq_dists_gen_samples = action_seq_dists_gen.rsample()
         (_, _, _), \
         (latent1_post_dists_im, latent2_post_dists_im, mode_post_dist_im) = \
-            self.latent.sample_posterior(actions_seq=action_seq_dists_gen.rsample(),
+            self.latent.sample_posterior(actions_seq=action_seq_dists_gen_samples,
                                          features_seq=features_seq)
 
         # Conditional entropies
         minus_cond_entropy_m_u = mode_post_dist_im.log_prob(mode_pri_sample).sum(dim=1).mean()
-        minus_cond_entropy_m_z = 0
+        minus_cond_entropy_z_u = 0
         for idx, dist in enumerate(latent1_post_dists_im):
-            minus_cond_entropy_m_z += \
+            minus_cond_entropy_z_u += \
                 latent1_post_dists_im[idx].log_prob(latent1_pri_samples[:, idx, :])\
                     .sum(dim=1).mean() + \
                 latent2_post_dists_im[idx].log_prob(latent2_pri_samples[:, idx, :])\
@@ -255,19 +264,40 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Mutual Infos
         I_mu = minus_cond_entropy_m_u + mode_pri_entropy
-        I_zu = minus_cond_entropy_m_z + dyn_pri_entropy
+        I_zu = minus_cond_entropy_z_u + dyn_pri_entropy
+
+        '''
+        Estimate q(z | u) with another net
+        '''
+        (_, _), \
+        (latent1_post_dists_im_v2, latent2_post_dists_im_v2) = \
+            self.latent.sample_posterior_mi(
+                actions_seq=action_seq_dists_gen_samples.detach(),
+                features_seq=features_seq.detach())
+
+        # Conditional entropies
+        minus_cond_entropy_z_u_v2 = 0
+        for idx, dist in enumerate(latent1_post_dists_im_v2):
+            minus_cond_entropy_z_u_v2 += \
+                latent1_post_dists_im_v2[idx].log_prob(latent1_pri_samples[:, idx, :]
+                                                       .detach()).sum(dim=1).mean() + \
+                latent2_post_dists_im_v2[idx].log_prob(latent2_pri_samples[:, idx, :] \
+                                                       .detach()).sum(dim=1).mean()
+
+        update_params(self.optim_mi, self.latent, -minus_cond_entropy_z_u_v2)
 
         # Logging
         self._summary_log('MI_mu/mutual information I(m;u)', I_mu)
         self._summary_log('MI_mu/conditional entropy H(m|u)', -minus_cond_entropy_m_u)
         self._summary_log('MI_mu/entropy H(m)', mode_pri_entropy)
         self._summary_log('MI_zu/mutual information I(z;u)', I_zu)
-        self._summary_log('MI_zu/conditional entropy H(z|u)', -minus_cond_entropy_m_z)
+        self._summary_log('MI_zu/conditional entropy H(z|u)', -minus_cond_entropy_z_u)
         self._summary_log('MI_zu/entropy H(z)', dyn_pri_entropy)
+        self._summary_log('MI_zu_v2/conditional entropy H(z|u)', -minus_cond_entropy_z_u_v2)
 
         # Loss
         latent_loss = kld_losses - log_likelihood_loss
-        #              + minus_cond_entropy_m_u - minus_cond_entropy_m_z
+        #              + minus_cond_entropy_m_u - minus_cond_entropy_z_u
 
         # Logging
         if self._is_log(self.learning_log_interval):

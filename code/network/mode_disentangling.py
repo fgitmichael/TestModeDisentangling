@@ -164,15 +164,14 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.latent1_posterior = Gaussian(
             action_shape[0] + latent2_dim + feature_dim, latent1_dim,
             hidden_units, leaky_slope=leaky_slope)
-        # q(z2(t+1) | z1(t+1), z2(t), a(t)) = p(z2(t+1) | z1(t+1), z2(t), a(t))
+        # q(z2(t+1) | z1(t+1), z2(t), x(t)) = p(z2(t+1) | z1(t+1), z2(t), x(t))
         self.latent2_posterior = self.latent2_prior
         # q(m | features(1:T-1), actions(1:T))
         self.mode_posterior = ModeEncoder(feature_dim,
-                                             action_shape[0],
-                                             output_dim=mode_dim,
-                                             hidden_rnn_dim=hidden_rnn_dim,
-                                             #seq_len=self.num_sequences,
-                                             )
+                                          action_shape[0],
+                                          output_dim=mode_dim,
+                                          hidden_rnn_dim=hidden_rnn_dim,
+                                          )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
         self.encoder = Encoder(
@@ -184,6 +183,19 @@ class ModeDisentanglingNetwork(BaseNetwork):
             action_shape[0],
             hidden_units,
             leaky_slope=leaky_slope)
+
+        # q_mi(z1(0) | action(0))
+        self.latent1_init_mi_posterior = Gaussian(
+            action_shape[0], latent1_dim, hidden_units, leaky_slope=leaky_slope)
+        # q_mi(z2(0) | z1(0)) = p(z2(0) | z1(0))
+        self.latent2_init_mi_posterior = self.latent2_init_prior
+        # q_mi(z1(t+1) | action(t+1), z2(t), x(t))
+        self.latent1_mi_posterior = Gaussian(
+            action_shape[0] + latent2_dim + feature_dim, latent1_dim,
+            hidden_units, leaky_slope=leaky_slope)
+        # q_mi(z2(t+1) | z1(t+1), z2(t), a(t))
+        self.latent2_mi_posterior = self.latent2_prior
+
 
     def sample_prior(self, features_seq, init_actions=None):
         '''
@@ -308,6 +320,61 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         return (latent1_samples, latent2_samples, mode_sample), \
                (latent1_dists, latent2_dists, mode_dist)
+
+    def sample_posterior_mi(self, actions_seq, features_seq):
+        '''
+        Sample from posterior dynamics for mi estimation
+
+        Args:
+            actions_seq  : (N, S+1, *action_space) tensor of action sequences
+            features_seq : (N, S, 256) tensor of feature sequences
+        Returns:
+            latent1_samples : (N, S+1, L1) tensor of sampled latent vectors
+            latent2_samples : (N, S+1, L2) tensor of sampled latent vectors
+            mode_samples    : (N, 1, mode_dim) tensor of sampled modes
+            latent1_dists   : (S+1) length list of (N, L1) distributions
+            latent2_dists   : (S+1) length list of (N, L2) distributions
+        '''
+        num_sequences = features_seq.size(1)
+        actions_seq = torch.transpose(actions_seq, 0, 1)
+        features_seq = torch.transpose(features_seq, 0, 1)
+
+        latent1_samples = []
+        latent2_samples = []
+        latent1_dists = []
+        latent2_dists = []
+
+        for t in range(num_sequences + 1):
+            if t==0:
+                # q(z1(0) | action(0))
+                latent1_dist = self.latent1_init_mi_posterior(actions_seq[t])
+                latent1_sample = latent1_dist.rsample()
+                # q(z2(0) | z1(0))
+                latent2_dist = self.latent2_init_mi_posterior(latent1_sample)
+                latent2_sample = latent2_dist.rsample()
+            else:
+                # q(z1(t) | action(t), z2(t-1), features(t-1))
+                latent1_dist = self.latent1_mi_posterior(
+                    [actions_seq[t], latent2_samples[t-1], features_seq[t-1]])
+                latent1_sample = latent1_dist.rsample()
+                # q(z2(t) | z1(t), z2(t-1), features(t-1))
+                latent2_dist = self.latent2_mi_posterior(
+                    [latent1_sample, latent2_samples[t-1], features_seq[t-1]])
+                latent2_sample = latent2_dist.rsample()
+
+            latent1_samples.append(latent1_sample)
+            latent2_samples.append(latent2_sample)
+            latent1_dists.append(latent1_dist)
+            latent2_dists.append(latent2_dist)
+
+        latent1_samples = torch.stack(latent1_samples, dim=1)
+        latent2_samples = torch.stack(latent2_samples, dim=1)
+
+        return (latent1_samples, latent2_samples), \
+               (latent1_dists, latent2_dists)
+
+
+
 
 
 
