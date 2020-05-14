@@ -42,6 +42,11 @@ def update_params(optim, network, loss, grad_clip=None, retain_graph=False):
             torch.nn.utils.clip_grad_norm_(p.parameters(), grad_clip)
     optim.step()
 
+def update_params_no_clip(optim, loss, retain_graph=False):
+    optim.zero_grad()
+    loss.backward(retain_graph=retain_graph)
+    optim.step()
+
 
 def soft_update(target, source, tau):
     for t, s in zip(target.parameters(), source.parameters()):

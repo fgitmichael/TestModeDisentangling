@@ -188,13 +188,16 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.latent1_init_mi_posterior = Gaussian(
             action_shape[0], latent1_dim, hidden_units, leaky_slope=leaky_slope)
         # q_mi(z2(0) | z1(0)) = p(z2(0) | z1(0))
-        self.latent2_init_mi_posterior = self.latent2_init_prior
+        self.latent2_init_mi_posterior = Gaussian(
+            latent1_dim, latent2_dim, hidden_units, leaky_slope=leaky_slope)
         # q_mi(z1(t+1) | action(t+1), z2(t), x(t))
         self.latent1_mi_posterior = Gaussian(
             action_shape[0] + latent2_dim + feature_dim, latent1_dim,
             hidden_units, leaky_slope=leaky_slope)
         # q_mi(z2(t+1) | z1(t+1), z2(t), a(t))
-        self.latent2_mi_posterior = self.latent2_prior
+        self.latent2_mi_posterior = Gaussian(
+            latent1_dim + latent2_dim + feature_dim, latent2_dim,
+            hidden_units, leaky_slope=leaky_slope)
 
 
     def sample_prior(self, features_seq, init_actions=None):

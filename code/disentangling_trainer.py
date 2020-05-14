@@ -12,7 +12,8 @@ from itertools import chain
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
-from utils import calc_kl_divergence, update_params, RunningMeanStats
+from utils import calc_kl_divergence, update_params,\
+    update_params_no_clip, RunningMeanStats
 
 # Needed for the loaded skill policy (Do not delete!)
 import rlkit.torch.sac.diayn
@@ -284,7 +285,7 @@ class DisentanglingTrainer(LatentTrainer):
                 latent2_post_dists_im_v2[idx].log_prob(latent2_pri_samples[:, idx, :] \
                                                        .detach()).sum(dim=1).mean()
 
-        update_params(self.optim_mi, self.latent, -minus_cond_entropy_z_u_v2)
+        update_params_no_clip(self.optim_mi, -minus_cond_entropy_z_u_v2,)
 
         # Logging
         self._summary_log('MI_mu/mutual information I(m;u)', I_mu)
