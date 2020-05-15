@@ -329,30 +329,31 @@ class DisentanglingTrainer(LatentTrainer):
             # Save Model
             self.latent.save(os.path.join(self.model_dir, 'model.pth'))
 
-            # Reconstruction test
-            rand_batch = np.random.choice(actions_seq.size(0))
-            action_dim = actions_seq.size(2)
-            gt_actions = actions_seq[rand_batch].detach().cpu()
-            post_actions = actions_seq_dists.loc[rand_batch].detach().cpu()
-            for dim in range(action_dim):
-                plt.interactive(False)
-                plt.plot(gt_actions[:, dim].numpy())
-                plt.plot(post_actions[:, dim].numpy())
-                fig = plt.gcf()
-                self.writer.add_figure('Reconstruction test dim'+str(dim), fig,
-                                        global_step=self.learning_steps )
-                plt.clf()
+            with torch.no_grad():
 
-            #with torch.no_grad():
-            #    pri_actions = self.latent.decoder(
-            #        [latent1_pri_samples[:1], latent2_pri_samples[:1]]
-            #    ).loc[0].detach().cpu()
-            #    cond_pri_samples, _ = self.latent.sample_prior(
-            #        features_seq[:1], actions_seq[:1, 0]
-            #    )
-            #    cond_pri_actions = self.latent.decoder(
-            #        cond_pri_samples.loc[0].detach().cpu()
-            #    )
+                # Reconstruction test
+                rand_batch = np.random.choice(actions_seq.size(0))
+                action_dim = actions_seq.size(2)
+                gt_actions = actions_seq[rand_batch].detach().cpu()
+                post_actions = actions_seq_dists.loc[rand_batch].detach().cpu()
+                for dim in range(action_dim):
+                    plt.interactive(False)
+                    plt.plot(gt_actions[:, dim].numpy())
+                    plt.plot(post_actions[:, dim].numpy())
+                    fig = plt.gcf()
+                    self.writer.add_figure('Reconstruction test dim'+str(dim), fig,
+                                            global_step=self.learning_steps )
+                    plt.clf()
+
+                #pri_actions = self.latent.decoder(
+                #    [latent1_pri_samples[:1], latent2_pri_samples[:1]]
+                #).loc[0].detach().cpu()
+                #cond_pri_samples, _ = self.latent.sample_prior(
+                #    features_seq[:1], actions_seq[:1, 0]
+                #)
+                #cond_pri_actions = self.latent.decoder(
+                #    cond_pri_samples.loc[0].detach().cpu()
+                #)
 
             #actions = torch.cat(
             #    [gt_actions, post_actions, cond_pri_actions, pri_actions], dim=-2
