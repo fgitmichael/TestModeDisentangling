@@ -192,11 +192,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
             latent1_dim, latent2_dim, hidden_units, leaky_slope=leaky_slope)
         # q_mi(z1(t+1) | action(t+1), z2(t), x(t))
         self.latent1_mi_posterior = Gaussian(
-            action_shape[0] + latent2_dim + feature_dim, latent1_dim,
+            action_shape[0] + latent2_dim, latent1_dim,
             hidden_units, leaky_slope=leaky_slope)
         # q_mi(z2(t+1) | z1(t+1), z2(t), a(t))
         self.latent2_mi_posterior = Gaussian(
-            latent1_dim + latent2_dim + feature_dim, latent2_dim,
+            latent1_dim + latent2_dim, latent2_dim,
             hidden_units, leaky_slope=leaky_slope)
 
 
@@ -324,13 +324,12 @@ class ModeDisentanglingNetwork(BaseNetwork):
         return (latent1_samples, latent2_samples, mode_sample), \
                (latent1_dists, latent2_dists, mode_dist)
 
-    def sample_posterior_mi(self, actions_seq, features_seq):
+    def sample_posterior_mi(self, actions_seq):
         '''
         Sample from posterior dynamics for mi estimation
 
         Args:
             actions_seq  : (N, S+1, *action_space) tensor of action sequences
-            features_seq : (N, S, 256) tensor of feature sequences
         Returns:
             latent1_samples : (N, S+1, L1) tensor of sampled latent vectors
             latent2_samples : (N, S+1, L2) tensor of sampled latent vectors
@@ -338,9 +337,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
             latent1_dists   : (S+1) length list of (N, L1) distributions
             latent2_dists   : (S+1) length list of (N, L2) distributions
         '''
-        num_sequences = features_seq.size(1)
+        num_sequences = actions_seq.size(1) - 1
         actions_seq = torch.transpose(actions_seq, 0, 1)
-        features_seq = torch.transpose(features_seq, 0, 1)
 
         latent1_samples = []
         latent2_samples = []
@@ -358,11 +356,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
             else:
                 # q(z1(t) | action(t), z2(t-1), features(t-1))
                 latent1_dist = self.latent1_mi_posterior(
-                    [actions_seq[t], latent2_samples[t-1], features_seq[t-1]])
+                    [actions_seq[t], latent2_samples[t-1]])
                 latent1_sample = latent1_dist.rsample()
                 # q(z2(t) | z1(t), z2(t-1), features(t-1))
                 latent2_dist = self.latent2_mi_posterior(
-                    [latent1_sample, latent2_samples[t-1], features_seq[t-1]])
+                    [latent1_sample, latent2_samples[t-1]])
                 latent2_sample = latent2_dist.rsample()
 
             latent1_samples.append(latent1_sample)

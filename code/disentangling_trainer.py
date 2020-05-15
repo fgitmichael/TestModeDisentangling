@@ -277,8 +277,7 @@ class DisentanglingTrainer(LatentTrainer):
         (_, _), \
         (latent1_post_dists_im_v2, latent2_post_dists_im_v2) = \
             self.latent.sample_posterior_mi(
-                actions_seq=action_seq_dists_gen_samples.detach(),
-                features_seq=features_seq.detach())
+                actions_seq=action_seq_dists_gen_samples.detach())
 
         # Conditional entropies
         minus_cond_entropy_z_u_v2 = 0
