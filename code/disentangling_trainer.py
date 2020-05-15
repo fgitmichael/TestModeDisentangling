@@ -229,45 +229,47 @@ class DisentanglingTrainer(LatentTrainer):
         m is sample from the mode prior
         u_1:T is the action_seq generated using the generative model 
         '''
-        # Generated action_seq (u ~ p(u|m,z))
-        mode_pri_samples = broadcast_mode_sample(mode_pri_sample,
-                                                 bdim=1,
-                                                 sizes=(mode_pri_sample.size(0),
-                                                    latent1_pri_samples.size(1),
-                                                    mode_pri_sample.size(1))
-                                                 )
-        action_seq_dists_gen = self.latent.decoder(
-            [latent1_pri_samples, latent2_pri_samples, mode_pri_samples]
-        )
+        with torch.no_grad():
+            # Generated action_seq (u ~ p(u|m,z))
+            mode_pri_samples = broadcast_mode_sample(mode_pri_sample,
+                                                     bdim=1,
+                                                     sizes=(mode_pri_sample.size(0),
+                                                        latent1_pri_samples.size(1),
+                                                        mode_pri_sample.size(1)))
 
-        # "Q(m|u)" - Marginalization of the posterior
-        action_seq_dists_gen_samples = action_seq_dists_gen.rsample()
-        (_, _, _), \
-        (latent1_post_dists_im, latent2_post_dists_im, mode_post_dist_im) = \
-            self.latent.sample_posterior(actions_seq=action_seq_dists_gen_samples,
-                                         features_seq=features_seq)
+            action_seq_dists_gen = self.latent.decoder(
+                [latent1_pri_samples, latent2_pri_samples, mode_pri_samples]
+            )
 
-        # Conditional entropies
-        minus_cond_entropy_m_u = mode_post_dist_im.log_prob(mode_pri_sample).sum(dim=1).mean()
-        minus_cond_entropy_z_u = 0
-        for idx, dist in enumerate(latent1_post_dists_im):
-            minus_cond_entropy_z_u += \
-                latent1_post_dists_im[idx].log_prob(latent1_pri_samples[:, idx, :])\
-                    .sum(dim=1).mean() + \
-                latent2_post_dists_im[idx].log_prob(latent2_pri_samples[:, idx, :])\
-                    .sum(dim=1).mean()
+            # "Q(m|u)" - Marginalization of the posterior
+            action_seq_dists_gen_samples = action_seq_dists_gen.rsample()
+            (_, _, _), \
+            (latent1_post_dists_im, latent2_post_dists_im, mode_post_dist_im) = \
+                self.latent.sample_posterior(actions_seq=action_seq_dists_gen_samples.detach(),
+                                             features_seq=features_seq)
 
-        # Entropies
-        mode_pri_entropy = mode_pri_dist.entropy().sum(dim=1).mean()
-        dyn_pri_entropy = 0
-        for dist1, dist2 in zip(latent1_pri_dists, latent2_pri_dists):
-            dyn_pri_entropy += \
-                dist1.entropy().sum(dim=1).mean() + \
-                dist2.entropy().sum(dim=1).mean()
+            # Conditional entropies
+            minus_cond_entropy_m_u = mode_post_dist_im.\
+                log_prob(mode_pri_sample).sum(dim=1).mean()
+            minus_cond_entropy_z_u = 0
+            for idx, dist in enumerate(latent1_post_dists_im):
+                minus_cond_entropy_z_u += \
+                    latent1_post_dists_im[idx].log_prob(latent1_pri_samples[:, idx, :].detach())\
+                        .sum(dim=1).mean() + \
+                    latent2_post_dists_im[idx].log_prob(latent2_pri_samples[:, idx, :].detach())\
+                        .sum(dim=1).mean()
 
-        # Mutual Infos
-        I_mu = minus_cond_entropy_m_u + mode_pri_entropy
-        I_zu = minus_cond_entropy_z_u + dyn_pri_entropy
+            # Entropies
+            mode_pri_entropy = mode_pri_dist.entropy().sum(dim=1).mean()
+            dyn_pri_entropy = 0
+            for dist1, dist2 in zip(latent1_pri_dists, latent2_pri_dists):
+                dyn_pri_entropy += \
+                    dist1.entropy().sum(dim=1).mean() + \
+                    dist2.entropy().sum(dim=1).mean()
+
+            # Mutual Infos
+            I_mu = minus_cond_entropy_m_u + mode_pri_entropy
+            I_zu = minus_cond_entropy_z_u + dyn_pri_entropy
 
         '''
         Estimate q(z | u) with another net
