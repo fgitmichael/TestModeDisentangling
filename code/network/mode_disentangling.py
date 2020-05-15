@@ -27,7 +27,7 @@ class LogvarGaussian(Gaussian):
             std = torch.ones_like(mean) * self.std
         else:
             mean, logstd = torch.chunk(x, 2, dim=-1)
-            std = torch.exp(logstd)
+            std = torch.exp(logstd) + 1e5
 
         return Normal(loc=mean, scale=std)
 
@@ -373,16 +373,4 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         return (latent1_samples, latent2_samples), \
                (latent1_dists, latent2_dists)
-
-
-
-
-
-
-
-
-
-
-
-
 

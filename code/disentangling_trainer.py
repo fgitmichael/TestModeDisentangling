@@ -32,7 +32,7 @@ class DisentanglingTrainer(LatentTrainer):
             num_steps = 3000000,
             initial_latent_steps = 100000,
             batch_size = 256,
-            latent_batch_size = 32,
+            latent_batch_size = 64,
             num_sequences = num_sequences,
             latent_lr = 0.0001,
             feature_dim = 256,
@@ -86,7 +86,7 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Optimization
         self.latent_optim = Adam(self.latent.parameters(), lr=parent_kwargs['latent_lr'])
-        lr_mi = 0.0001
+        lr_mi = 0.0050
         self.optim_mi = Adam(chain(self.latent.latent2_mi_posterior.parameters(),
                                    self.latent.latent1_mi_posterior.parameters(),
                                    self.latent.latent2_init_mi_posterior.parameters(),
