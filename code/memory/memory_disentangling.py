@@ -10,7 +10,7 @@ Minor changes:
 '''
 
 class MySeqBufferDisentangling(LazySequenceBuff):
-    def __init__(self, num_sequences=8):
+    def __init__(self, num_sequences):
         super(MySeqBufferDisentangling, self).__init__(num_sequences)
 
     def reset(self):

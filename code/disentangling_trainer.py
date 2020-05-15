@@ -90,7 +90,8 @@ class DisentanglingTrainer(LatentTrainer):
         self.optim_mi = Adam(chain(self.latent.latent2_mi_posterior.parameters(),
                                    self.latent.latent1_mi_posterior.parameters(),
                                    self.latent.latent2_init_mi_posterior.parameters(),
-                                   self.latent.latent1_init_mi_posterior.parameters()),
+                                   self.latent.latent1_init_mi_posterior.parameters()
+                                ),
                              lr=lr_mi)
 
         # Memory
@@ -162,7 +163,9 @@ class DisentanglingTrainer(LatentTrainer):
                     print('-' * 60)
 
         print(f'episode: {self.episodes:<4}  '
-              f'episode steps: {episode_steps:<4}  ')
+              f'episode steps: {episode_steps:<4}  '
+              f'skill: {skill:<4}  ')
+
         self.save_models()
 
     def learn_latent(self):
@@ -172,7 +175,7 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Calc loss
         latent_loss = self.calc_latent_loss(
-            images_seq, actions_seq, rewards_seq, dones_seq)
+            images_seq, actions_seq)
 
         # Backprop
         update_params(
@@ -182,8 +185,7 @@ class DisentanglingTrainer(LatentTrainer):
         if self._is_log(self.learning_log_interval//2):
             self.latent.write_net_params(self.writer, self.learning_steps)
 
-    def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
-                         dones_seq):
+    def calc_latent_loss(self, images_seq, actions_seq):
         # Get features from images
         features_seq = self.latent.encoder(images_seq)
 
@@ -214,8 +216,8 @@ class DisentanglingTrainer(LatentTrainer):
                                                   bdim=1,
                                                   sizes=(mode_post_sample.size(0),
                                                     latent1_post_samples.size(1),
-                                                    mode_post_sample.size(1))
-                                                  )
+                                                    mode_post_sample.size(1)))
+
         actions_seq_dists = self.latent.decoder(
             [latent1_post_samples, latent2_post_samples, mode_post_samples])
         log_likelihood_loss = actions_seq_dists.log_prob(actions_seq).mean(dim=0).sum()
