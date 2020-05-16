@@ -30,8 +30,8 @@ class BaseNetwork(nn.Module):
             itr            :    iteration
         '''
         for name, weight in self.named_parameters():
-            summary_writer.add_histogram(name, weight, itr)
             try:
+                summary_writer.add_histogram(name, weight, itr)
                 summary_writer.add_histogram(f'{name}.grad', weight.grad, itr)
             except:
                 print('%s could not be written to tensorboard' % name)
