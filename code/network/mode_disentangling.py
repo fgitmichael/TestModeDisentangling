@@ -9,10 +9,11 @@ from .latent import Gaussian, ConstantGaussian, Decoder, Encoder
 
 
 class LogvarGaussian(Gaussian):
-    '''
+    """
     Only difference to Gaussian should be the way the variance is
     calculated
-    '''
+    """
+
     def __init__(self, **kwargs):
         # Call base constructor
         super(LogvarGaussian, self).__init__(**kwargs)
