@@ -22,6 +22,7 @@ class DisentanglingTrainer(LatentTrainer):
                  log_dir,
                  skill_policy_path,
                  seed,
+                 run_id,
                  num_sequences=25,
                  cuda=False
                  ):
@@ -46,6 +47,10 @@ class DisentanglingTrainer(LatentTrainer):
             learning_log_interval = 100,
             cuda = cuda,
             seed = seed)
+        self.run_id = run_id
+
+        # Comment for summery writer
+        summary_comment = ''
 
         # Environment
         self.env = env
@@ -72,7 +77,7 @@ class DisentanglingTrainer(LatentTrainer):
             latent2_dim=parent_kwargs['latent2_dim'],
             mode_dim=200,
             hidden_units=parent_kwargs['hidden_units'],
-            rnn_layers = parent_kwargs['rnn_layers'],
+            rnn_layers=parent_kwargs['rnn_layers'],
             hidden_rnn_dim=parent_kwargs['hidden_rnn_dim'],
             leaky_slope=parent_kwargs['leaky_slope']
         ).to(self.device)
@@ -106,7 +111,21 @@ class DisentanglingTrainer(LatentTrainer):
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
 
-        self.writer = SummaryWriter(log_dir=self.summary_dir)
+        # Summary writer with conversion of hparams
+        # (certain types are not aloud for hparam-storage)
+        self.writer = SummaryWriter(log_dir=self.summary_dir,
+                                    comment=summary_comment)
+        hparam_dict = parent_kwargs.copy()
+        for k, v in hparam_dict.items():
+            if type(v) is type(None):
+                hparam_dict[k] = 'None'
+            if type(v) is type([]):
+                hparam_dict[k] = torch.Tensor(v)
+        hparam_dict['hidden_units'] = torch.Tensor(parent_kwargs['hidden_units'])
+        self.writer.add_hparams(hparam_dict=hparam_dict,
+                                metric_dict={})
+
+        # Set hyperparameters
         self.steps = 0
         self.learning_steps = 0
         self.episodes = 0
@@ -269,7 +288,8 @@ class DisentanglingTrainer(LatentTrainer):
         return latent_loss
 
     def save_models(self):
-        self.latent.save(os.path.join(self.model_dir, 'latent.pth'))
+        name = self.run_id + '_model'
+        self.latent.save(os.path.join(self.model_dir, self.run_id))
         #np.save(self.memory, os.path.join(self.model_dir, 'memory.pth'))
 
     def _is_log(self, log_interval):
