@@ -202,7 +202,15 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.latent2_mi_posterior = Gaussian(
             latent1_dim + latent2_dim, latent2_dim,
             hidden_units, leaky_slope=leaky_slope)
-
+        # q_mi(m | u_1:T)
+        self.mode_posterior_mi = nn.Sequential(BiRnn(action_shape[0],
+                                                     hidden_rnn_dim,
+                                                     learn_initial_state=True),
+                                               Gaussian(2*hidden_rnn_dim,
+                                                        mode_dim,
+                                                        hidden_units,
+                                                        leaky_slope=leaky_slope)
+                                               )
 
     def sample_prior(self, features_seq, init_actions=None):
         '''
@@ -333,7 +341,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         return (latent1_samples, latent2_samples, mode_sample), \
                (latent1_dists, latent2_dists, mode_dist)
 
-    def sample_posterior_mi(self, actions_seq):
+    def sample_posterior_dynamics_mi(self, actions_seq):
         '''
         Sample from posterior dynamics for mi estimation
 
@@ -382,4 +390,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         return (latent1_samples, latent2_samples), \
                (latent1_dists, latent2_dists)
+
+    def sample_posterior_mode_mi(self, action_seq):
+        mode_dist = self.mode_posterior_mi(action_seq)
+
+        return mode_dist
+
+
 
