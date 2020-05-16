@@ -36,11 +36,13 @@ class DisentanglingTrainer(LatentTrainer):
             latent1_dim = 32,
             latent2_dim = 256,
             hidden_units = [256, 256],
+            hidden_rnn_dim = 100,
+            rnn_layers = 1,
             memory_size = 1e5,
             leaky_slope = 0.2,
             grad_clip = None,
             start_steps = 10000,
-            training_log_interval = 10,
+            training_log_interval = 100,
             learning_log_interval = 100,
             cuda = cuda,
             seed = seed)
@@ -68,10 +70,10 @@ class DisentanglingTrainer(LatentTrainer):
             feature_dim=parent_kwargs['feature_dim'],
             latent1_dim=parent_kwargs['latent1_dim'],
             latent2_dim=parent_kwargs['latent2_dim'],
-            mode_dim=500,
+            mode_dim=200,
             hidden_units=parent_kwargs['hidden_units'],
+            rnn_layers = parent_kwargs['rnn_layers'],
             hidden_rnn_dim=parent_kwargs['hidden_rnn_dim'],
-            num_sequences=parent_kwargs['num_sequences'],
             leaky_slope=parent_kwargs['leaky_slope']
         ).to(self.device)
 

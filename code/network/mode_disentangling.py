@@ -37,6 +37,7 @@ class BiRnn(BaseNetwork):
     def __init__(self,
                  input_dim,
                  hidden_rnn_dim,
+                 rnn_layers,
                  learn_initial_state=True):
         super(BiRnn, self).__init__()
 
@@ -46,7 +47,8 @@ class BiRnn(BaseNetwork):
         self.input_dim = input_dim
         self.hidden_rnn_dim = hidden_rnn_dim
         self.f_rnn = nn.GRU(self.input_dim, self.hidden_rnn_dim, 1,
-                              bidirectional=True)
+                            num_layers=rnn_layers,
+                            bidirectional=True)
 
         # Noisy hidden init state
         # Note: Only works with GRU right now
@@ -129,8 +131,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  latent2_dim,
                  mode_dim,
                  hidden_units,
-                 num_sequences,
                  hidden_rnn_dim,
+                 rnn_layers,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
         '''
