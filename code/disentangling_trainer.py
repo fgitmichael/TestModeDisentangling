@@ -118,10 +118,13 @@ class DisentanglingTrainer(LatentTrainer):
         self.training_log_interval = parent_kwargs['training_log_interval']
         self.learning_log_interval = parent_kwargs['learning_log_interval']
 
-    def get_skill_action(self, skill):
+    def get_skill_action(self):
         obs_state_space = self.env.get_state_obs()
         action, info = self.policy.get_action(obs_state_space)
         return action
+
+    def set_policy_skill(self, skill):
+        self.policy.stochastic_policy.skill = skill
 
     def train_episode(self):
         self.episodes += 1
@@ -131,9 +134,10 @@ class DisentanglingTrainer(LatentTrainer):
         state = self.env.reset()
         self.memory.set_initial_state(state)
         skill = np.random.randint(self.policy.stochastic_policy.skill_dim)
+        self.set_policy_skill(skill)
 
         while not done:
-            action = self.get_skill_action(skill)
+            action = self.get_skill_action()
             next_state, reward, done, _ = self.env.step(action)
             self.steps += self.action_repeat
             episode_steps += self.action_repeat
@@ -151,12 +155,10 @@ class DisentanglingTrainer(LatentTrainer):
                     print('Finished learning the disentangled model')
                     print('-' * 60)
 
-        #if self.episodes % self.training_log_interval == 0:
-        #    self.writer.add_scalar(
-        #        'reward/train', self.train_rewards.get(), self.steps)
-
         print(f'episode: {self.episodes:<4}  '
-              f'episode steps: {episode_steps:<4}  ')
+              f'episode steps: {episode_steps:<4}  '
+              f'skill: {skill:<4}  ')
+
         self.save_models()
 
     def learn_latent(self):

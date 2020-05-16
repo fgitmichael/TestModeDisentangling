@@ -5,3 +5,4 @@ __pycache__/
 *.out
 code/memory/flag.py
 code/play.py
+*.ipynb
