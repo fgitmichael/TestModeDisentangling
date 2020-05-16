@@ -25,7 +25,7 @@ class DisentanglingTrainer(LatentTrainer):
                  log_dir,
                  skill_policy_path,
                  seed,
-                 num_sequences=15,
+                 num_sequences=25,
                  cuda=False
                  ):
         parent_kwargs = dict(
@@ -37,9 +37,10 @@ class DisentanglingTrainer(LatentTrainer):
             latent_lr = 0.0001,
             feature_dim = 256,
             latent1_dim = 8,
-            latent2_dim = 32,
-            hidden_units = [56, 56],
+            latent2_dim = 64,
+            hidden_units = [256, 256],
             hidden_rnn_dim = 100,
+            rnn_layers = 1,
             memory_size = 1e5,
             leaky_slope = 0.2,
             grad_clip = None,
@@ -74,8 +75,8 @@ class DisentanglingTrainer(LatentTrainer):
             latent2_dim=parent_kwargs['latent2_dim'],
             mode_dim=200,
             hidden_units=parent_kwargs['hidden_units'],
+            rnn_layers = parent_kwargs['rnn_layers'],
             hidden_rnn_dim=parent_kwargs['hidden_rnn_dim'],
-            num_sequences=parent_kwargs['num_sequences'],
             leaky_slope=parent_kwargs['leaky_slope']
         ).to(self.device)
 

@@ -37,6 +37,7 @@ class BiRnn(BaseNetwork):
     def __init__(self,
                  input_dim,
                  hidden_rnn_dim,
+                 rnn_layers,
                  learn_initial_state=True):
         super(BiRnn, self).__init__()
 
@@ -46,7 +47,8 @@ class BiRnn(BaseNetwork):
         self.input_dim = input_dim
         self.hidden_rnn_dim = hidden_rnn_dim
         self.f_rnn = nn.GRU(self.input_dim, self.hidden_rnn_dim, 1,
-                              bidirectional=True)
+                            num_layers=rnn_layers,
+                            bidirectional=True)
 
         # Noisy hidden init state
         # Note: Only works with GRU right now
@@ -95,28 +97,28 @@ class ModeEncoder(BaseNetwork):
                  feature_shape,
                  action_shape,
                  output_dim,  # typically mode_dim
-                 hidden_rnn_dim
+                 hidden_rnn_dim,
+                 rnn_layers
                  ):
         super(ModeEncoder, self).__init__()
 
-        self.f_rnn_features = BiRnn(feature_shape,
-                                    hidden_rnn_dim=hidden_rnn_dim)
-        self.f_rnn_actions = BiRnn(action_shape,
-                                   hidden_rnn_dim=hidden_rnn_dim)
+        self.f_rnn = BiRnn(feature_shape+action_shape,
+                           hidden_rnn_dim=hidden_rnn_dim,
+                           rnn_layers=rnn_layers)
 
         # Concatenation of 2*hidden_rnn_dim from the features rnn and
         # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
-        self.f_dist = Gaussian(input_dim=4 * hidden_rnn_dim,
+        self.f_dist = Gaussian(input_dim=2 * hidden_rnn_dim,
                                output_dim=output_dim,
                                hidden_units=[256, 256])
 
     def forward(self, features_seq, actions_seq):
-        feat_res = self.f_rnn_features(features_seq)
-        act_res = self.f_rnn_actions(actions_seq)
-        rnn_result = torch.cat([feat_res, act_res], dim=1)
+        # RNN
+        rnn_in = torch.cat([actions_seq, features_seq], dim=2)
+        rnn_out = self.f_rnn(rnn_in)
 
         # Feed result into Gaussian layer
-        return self.f_dist(rnn_result)
+        return self.f_dist(rnn_out)
 
 
 class ModeDisentanglingNetwork(BaseNetwork):
@@ -129,8 +131,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  latent2_dim,
                  mode_dim,
                  hidden_units,
-                 num_sequences,
                  hidden_rnn_dim,
+                 rnn_layers,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
         '''
