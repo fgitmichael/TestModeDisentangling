@@ -16,7 +16,7 @@ class MySeqBufferDisentangling(LazySequenceBuff):
     def reset(self):
         self.memory = {
             'state': deque(maxlen=self.num_sequences),
-            'action': deque(maxlen=self.num_sequences + 1),
+            'action': deque(maxlen=self.num_sequences),
             'reward': deque(maxlen=self.num_sequences),
             'done': deque(maxlen=self.num_sequences)}
 
@@ -35,6 +35,19 @@ class MyMemoryDisentangling(LazyMemory):
             self[key] = [None] * self.capacity
         self.buff = MySeqBufferDisentangling(num_sequences=self.num_sequences)
 
+    def append(self, action, reward, next_state, done, episode_done=False):
+        assert self.is_set_init is True
+
+        self.buff.append(action, reward, next_state, done)
+
+        # Only change to parent method is in the following line
+        if len(self.buff) == self.num_sequences:
+            states, actions, rewards, dones = self.buff.get()
+            self._append(states, actions, rewards, dones)
+
+        if done or episode_done:
+            self.buff.reset()
+
     def sample_latent(self, batch_size):
         '''
         Returns:
@@ -49,7 +62,7 @@ class MyMemoryDisentangling(LazyMemory):
             batch_size, self.num_sequences, *self.observation_shape),
             dtype=np.uint8)
         actions_seq = np.empty((
-            batch_size, self.num_sequences + 1, *self.action_shape),
+            batch_size, self.num_sequences, *self.action_shape),
             dtype=np.float32)
         rewards_seq = np.empty((
             batch_size, self.num_sequences, 1), dtype=np.float32)
