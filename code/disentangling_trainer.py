@@ -6,7 +6,6 @@ from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 
-
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
@@ -20,37 +19,42 @@ class DisentanglingTrainer(LatentTrainer):
     def __init__(self,
                  env,
                  log_dir,
+                 state_rep,
                  skill_policy_path,
                  seed,
                  run_id,
+                 feature_dim=256,
                  num_sequences=25,
-                 cuda=False
+                 cuda=False,
                  ):
         parent_kwargs = dict(
-            num_steps = 3000000,
-            initial_latent_steps = 100000,
-            batch_size = 256,
-            latent_batch_size = 32,
-            num_sequences = num_sequences,
-            latent_lr = 0.0001,
-            feature_dim = 256,
-            latent1_dim = 32,
-            latent2_dim = 256,
-            hidden_units = [256, 256],
-            hidden_rnn_dim = 100,
-            rnn_layers = 1,
-            memory_size = 1e5,
-            leaky_slope = 0.2,
-            grad_clip = None,
-            start_steps = 10000,
-            training_log_interval = 100,
-            learning_log_interval = 100,
-            cuda = cuda,
-            seed = seed)
+            num_steps=3000000,
+            initial_latent_steps=100000,
+            batch_size=256,
+            latent_batch_size=32,
+            num_sequences=num_sequences,
+            latent_lr=0.0001,
+            feature_dim=feature_dim,
+            latent1_dim=32,
+            latent2_dim=256,
+            hidden_units=[256, 256],
+            hidden_rnn_dim=100,
+            rnn_layers=1,
+            memory_size=1e5,
+            leaky_slope=0.2,
+            grad_clip=None,
+            start_steps=10000,
+            training_log_interval=100,
+            learning_log_interval=100,
+            cuda=cuda,
+            seed=seed)
+
+        # Other
         self.run_id = run_id
+        self.state_rep = state_rep
 
         # Comment for summery writer
-        summary_comment = ''
+        summary_comment = self.run_id + ''
 
         # Environment
         self.env = env
@@ -79,7 +83,8 @@ class DisentanglingTrainer(LatentTrainer):
             hidden_units=parent_kwargs['hidden_units'],
             rnn_layers=parent_kwargs['rnn_layers'],
             hidden_rnn_dim=parent_kwargs['hidden_rnn_dim'],
-            leaky_slope=parent_kwargs['leaky_slope']
+            leaky_slope=parent_kwargs['leaky_slope'],
+            state_rep=state_rep
         ).to(self.device)
 
         # Load pretrained DIAYN skill policy
@@ -113,13 +118,13 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Summary writer with conversion of hparams
         # (certain types are not aloud for hparam-storage)
-        self.writer = SummaryWriter(log_dir=self.summary_dir,
-                                    comment=summary_comment)
+        self.writer = SummaryWriter(os.path.join(self.summary_dir, summary_comment),
+                                    filename_suffix=self.run_id)
         hparam_dict = parent_kwargs.copy()
         for k, v in hparam_dict.items():
-            if type(v) is type(None):
+            if isinstance(v, type(None)):
                 hparam_dict[k] = 'None'
-            if type(v) is type([]):
+            if isinstance(v, list):
                 hparam_dict[k] = torch.Tensor(v)
         hparam_dict['hidden_units'] = torch.Tensor(parent_kwargs['hidden_units'])
         self.writer.add_hparams(hparam_dict=hparam_dict,
@@ -139,9 +144,13 @@ class DisentanglingTrainer(LatentTrainer):
         self.training_log_interval = parent_kwargs['training_log_interval']
         self.learning_log_interval = parent_kwargs['learning_log_interval']
 
-    def get_skill_action(self):
+    def get_skill_action_pixel(self):
         obs_state_space = self.env.get_state_obs()
         action, info = self.policy.get_action(obs_state_space)
+        return action
+
+    def get_skill_action_state_rep(self, observation):
+        action, info = self.policy.get_action(observation)
         return action
 
     def set_policy_skill(self, skill):
@@ -157,8 +166,10 @@ class DisentanglingTrainer(LatentTrainer):
         skill = np.random.randint(self.policy.stochastic_policy.skill_dim)
         self.set_policy_skill(skill)
 
+        next_state = state
         while not done:
-            action = self.get_skill_action()
+            action = self.get_skill_action_state_rep(next_state) if self.state_rep \
+                else self.get_skill_action_pixel()
             next_state, reward, done, _ = self.env.step(action)
             self.steps += self.action_repeat
             episode_steps += self.action_repeat
@@ -196,7 +207,7 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         # Write net params
-        if self._is_log(self.learning_log_interval//2):
+        if self._is_log(self.learning_log_interval // 2):
             self.latent.write_net_params(self.writer, self.learning_steps)
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
@@ -205,14 +216,14 @@ class DisentanglingTrainer(LatentTrainer):
         features_seq = self.latent.encoder(images_seq)
 
         # Sample from posterior dynamics
-        (latent1_post_samples, latent2_post_samples, mode_post_sample), \
-        (latent1_post_dists, latent2_post_dists, mode_post_dist) = \
+        ((latent1_post_samples, latent2_post_samples, mode_post_sample),
+            (latent1_post_dists, latent2_post_dists, mode_post_dist)) = \
             self.latent.sample_posterior(actions_seq=actions_seq,
                                          features_seq=features_seq)
 
         # Sample from prior dynamics
-        (latent1_pri_samples, latent2_pri_samples, mode_pri_sample), \
-        (latent1_pri_dists, latent2_pri_dists, mode_pri_dist) = \
+        ((latent1_pri_samples, latent2_pri_samples, mode_pri_sample),
+            (latent1_pri_dists, latent2_pri_dists, mode_pri_dist)) = \
             self.latent.sample_prior(features_seq)
 
         # KL divergence losses
@@ -234,8 +245,8 @@ class DisentanglingTrainer(LatentTrainer):
         if self._is_log(self.learning_log_interval):
 
             # Reconstruction error
-            reconst_error = (actions_seq - actions_seq_dists.loc)\
-                .pow(2).mean(dim=(0,1)).sum()
+            reconst_error = (actions_seq - actions_seq_dists.loc) \
+                .pow(2).mean(dim=(0, 1)).sum()
             self._summary_log('stats/reconst_error', reconst_error)
             print('reconstruction error: %f', reconst_error)
 
@@ -266,8 +277,8 @@ class DisentanglingTrainer(LatentTrainer):
                 plt.plot(gt_actions[:, dim].numpy())
                 plt.plot(post_actions[:, dim].numpy())
                 fig = plt.gcf()
-                self.writer.add_figure('Reconstruction test dim'+str(dim), fig,
-                                        global_step=self.learning_steps )
+                self.writer.add_figure('Reconstruction test dim' + str(dim), fig,
+                                       global_step=self.learning_steps)
                 plt.clf()
 
             #with torch.no_grad():
@@ -288,7 +299,6 @@ class DisentanglingTrainer(LatentTrainer):
         return latent_loss
 
     def save_models(self):
-        name = self.run_id + '_model'
         self.latent.save(os.path.join(self.model_dir, self.run_id))
         #np.save(self.memory, os.path.join(self.model_dir, 'memory.pth'))
 
@@ -299,4 +309,3 @@ class DisentanglingTrainer(LatentTrainer):
         if type(data) == torch.Tensor:
             data = data.detach().cpu().item()
         self.writer.add_scalar(data_name, data, self.learning_steps)
-

@@ -18,6 +18,7 @@ def run():
     parser.add_argument('--policy_path', type=str,
                         default='./data/01_Skill_policy_half_cheetah/params.pkl')
     parser.add_argument('--log_folder', type=str, default=None)
+    parser.add_argument('--state_rep', action='store_true')
     args = parser.parse_args()
 
     # Config dict
@@ -27,8 +28,18 @@ def run():
     )
 
     # Environment
-    env = DmControlEnvForPytorchBothObstype(
-        args.domain_name, args.task_name, args.action_repeat)
+    if args.state_rep:
+        env = DmControlEnvForPytorch(
+            args.domain_name,
+            args.task_name,
+            args.action_repeat,
+            obs_type='state'
+        )
+    else:
+        env = DmControlEnvForPytorchBothObstype(
+            args.domain_name, args.task_name, args.action_repeat
+        )
+        feature_dim = 256
 
     # Directories
     run_id = f'slac-seed{args.seed}-{datetime.now().strftime("%Y%m%d-%H%M")}'
@@ -52,11 +63,21 @@ def run():
     # Policy path
     skill_policy_path = args.policy_path
 
+    # Feature dimensions
+    if args.state_rep:
+        # Set observation dimension as feature_dim
+        feature_dim = int(env.observation_space.shape[0])
+    else:
+        # Use default value of the trainer object
+        feature_dim = None
+
     # Trainer
     agent = DisentanglingTrainer(env=env,
                                  log_dir=log_dir,
                                  skill_policy_path=skill_policy_path,
                                  run_id=run_id,
+                                 state_rep=args.state_rep,
+                                 feature_dim=feature_dim,
                                  **configs)
     agent.run()
 
