@@ -55,7 +55,7 @@ class DisentanglingTrainer(LatentTrainer):
         self.state_rep = state_rep
 
         # Comment for summery writer
-        summary_comment = ''
+        summary_comment = self.run_id + ''
 
         # Environment
         self.env = env
@@ -119,8 +119,8 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Summary writer with conversion of hparams
         # (certain types are not aloud for hparam-storage)
-        self.writer = SummaryWriter(log_dir=self.summary_dir,
-                                    comment=summary_comment)
+        self.writer = SummaryWriter(os.path.join(self.summary_dir, summary_comment),
+                                    filename_suffix=self.run_id)
         hparam_dict = parent_kwargs.copy()
         for k, v in hparam_dict.items():
             if type(v) is type(None):
