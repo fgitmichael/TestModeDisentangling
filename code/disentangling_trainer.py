@@ -20,9 +20,11 @@ class DisentanglingTrainer(LatentTrainer):
     def __init__(self,
                  env,
                  log_dir,
+                 state_rep,
                  skill_policy_path,
                  seed,
                  run_id,
+                 feature_dim=256,
                  num_sequences=25,
                  cuda=False
                  ):
@@ -33,7 +35,7 @@ class DisentanglingTrainer(LatentTrainer):
             latent_batch_size = 32,
             num_sequences = num_sequences,
             latent_lr = 0.0001,
-            feature_dim = 256,
+            feature_dim = feature_dim,
             latent1_dim = 32,
             latent2_dim = 256,
             hidden_units = [256, 256],
@@ -47,7 +49,10 @@ class DisentanglingTrainer(LatentTrainer):
             learning_log_interval = 100,
             cuda = cuda,
             seed = seed)
+
+        # Other
         self.run_id = run_id
+        self.state_rep = state_rep
 
         # Comment for summery writer
         summary_comment = ''
@@ -79,7 +84,8 @@ class DisentanglingTrainer(LatentTrainer):
             hidden_units=parent_kwargs['hidden_units'],
             rnn_layers=parent_kwargs['rnn_layers'],
             hidden_rnn_dim=parent_kwargs['hidden_rnn_dim'],
-            leaky_slope=parent_kwargs['leaky_slope']
+            leaky_slope=parent_kwargs['leaky_slope'],
+            state_rep=state_rep
         ).to(self.device)
 
         # Load pretrained DIAYN skill policy
@@ -139,9 +145,13 @@ class DisentanglingTrainer(LatentTrainer):
         self.training_log_interval = parent_kwargs['training_log_interval']
         self.learning_log_interval = parent_kwargs['learning_log_interval']
 
-    def get_skill_action(self):
+    def get_skill_action_pixel(self):
         obs_state_space = self.env.get_state_obs()
         action, info = self.policy.get_action(obs_state_space)
+        return action
+
+    def get_skill_action_state_rep(self, observation):
+        action, info = self.policy.get_action(observation)
         return action
 
     def set_policy_skill(self, skill):
@@ -157,8 +167,10 @@ class DisentanglingTrainer(LatentTrainer):
         skill = np.random.randint(self.policy.stochastic_policy.skill_dim)
         self.set_policy_skill(skill)
 
+        next_state = state
         while not done:
-            action = self.get_skill_action()
+            action = self.get_skill_action_state_rep(next_state) if self.state_rep \
+                else self.get_skill_action_pixel()
             next_state, reward, done, _ = self.env.step(action)
             self.steps += self.action_repeat
             episode_steps += self.action_repeat

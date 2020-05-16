@@ -129,6 +129,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
     def __init__(self,
                  observation_shape,
                  action_shape,
+                 state_rep,
                  feature_dim,
                  latent1_dim,
                  latent2_dim,
@@ -180,8 +181,13 @@ class ModeDisentanglingNetwork(BaseNetwork):
                                           )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
-        self.encoder = Encoder(
-            observation_shape[0], feature_dim, leaky_slope=leaky_slope)
+        if state_rep:
+            # State representation
+            self.encoder = nn.Linear(observation_shape[0], feature_dim)
+        else:
+            # Conv-nets for pixel observations
+            self.encoder = Encoder(
+                observation_shape[0], feature_dim, leaky_slope=leaky_slope)
 
         # p(u(t) | z2(t), z1(t), m)
         self.decoder = Gaussian(
