@@ -97,14 +97,17 @@ class ModeEncoder(BaseNetwork):
                  feature_shape,
                  action_shape,
                  output_dim,  # typically mode_dim
-                 hidden_rnn_dim
+                 hidden_rnn_dim,
+                 rnn_layers
                  ):
         super(ModeEncoder, self).__init__()
 
         self.f_rnn_features = BiRnn(feature_shape,
-                                    hidden_rnn_dim=hidden_rnn_dim)
+                                    hidden_rnn_dim=hidden_rnn_dim,
+                                    rnn_layers=rnn_layers)
         self.f_rnn_actions = BiRnn(action_shape,
-                                   hidden_rnn_dim=hidden_rnn_dim)
+                                   hidden_rnn_dim=hidden_rnn_dim,
+                                   rnn_layers=rnn_layers)
 
         # Concatenation of 2*hidden_rnn_dim from the features rnn and
         # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
@@ -170,11 +173,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.latent2_posterior = self.latent2_prior
         # q(m | features(1:T-1), actions(1:T))
         self.mode_posterior = ModeEncoder(feature_dim,
-                                             action_shape[0],
-                                             output_dim=mode_dim,
-                                             hidden_rnn_dim=hidden_rnn_dim,
-                                             #seq_len=self.num_sequences,
-                                             )
+                                          action_shape[0],
+                                          output_dim=mode_dim,
+                                          hidden_rnn_dim=hidden_rnn_dim,
+                                          rnn_layers=rnn_layers
+                                          )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
         self.encoder = Encoder(
