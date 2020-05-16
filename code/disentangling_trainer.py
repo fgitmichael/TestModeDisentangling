@@ -26,29 +26,29 @@ class DisentanglingTrainer(LatentTrainer):
                  run_id,
                  feature_dim=256,
                  num_sequences=25,
-                 cuda=False
+                 cuda=False,
                  ):
         parent_kwargs = dict(
-            num_steps = 3000000,
-            initial_latent_steps = 100000,
-            batch_size = 256,
-            latent_batch_size = 32,
-            num_sequences = num_sequences,
-            latent_lr = 0.0001,
-            feature_dim = feature_dim,
-            latent1_dim = 32,
-            latent2_dim = 256,
-            hidden_units = [256, 256],
-            hidden_rnn_dim = 100,
-            rnn_layers = 1,
-            memory_size = 1e5,
-            leaky_slope = 0.2,
-            grad_clip = None,
-            start_steps = 10000,
-            training_log_interval = 100,
-            learning_log_interval = 100,
-            cuda = cuda,
-            seed = seed)
+            num_steps=3000000,
+            initial_latent_steps=100000,
+            batch_size=256,
+            latent_batch_size=32,
+            num_sequences=num_sequences,
+            latent_lr=0.0001,
+            feature_dim=feature_dim,
+            latent1_dim=32,
+            latent2_dim=256,
+            hidden_units=[256, 256],
+            hidden_rnn_dim=100,
+            rnn_layers=1,
+            memory_size=1e5,
+            leaky_slope=0.2,
+            grad_clip=None,
+            start_steps=10000,
+            training_log_interval=100,
+            learning_log_interval=100,
+            cuda=cuda,
+            seed=seed)
 
         # Other
         self.run_id = run_id
@@ -123,9 +123,9 @@ class DisentanglingTrainer(LatentTrainer):
                                     filename_suffix=self.run_id)
         hparam_dict = parent_kwargs.copy()
         for k, v in hparam_dict.items():
-            if type(v) is type(None):
+            if isinstance(v, type(None)):
                 hparam_dict[k] = 'None'
-            if type(v) is type([]):
+            if isinstance(v, list):
                 hparam_dict[k] = torch.Tensor(v)
         hparam_dict['hidden_units'] = torch.Tensor(parent_kwargs['hidden_units'])
         self.writer.add_hparams(hparam_dict=hparam_dict,
