@@ -6,7 +6,6 @@ from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 
-
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
@@ -208,7 +207,7 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         # Write net params
-        if self._is_log(self.learning_log_interval//2):
+        if self._is_log(self.learning_log_interval // 2):
             self.latent.write_net_params(self.writer, self.learning_steps)
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
@@ -217,14 +216,14 @@ class DisentanglingTrainer(LatentTrainer):
         features_seq = self.latent.encoder(images_seq)
 
         # Sample from posterior dynamics
-        (latent1_post_samples, latent2_post_samples, mode_post_sample), \
-        (latent1_post_dists, latent2_post_dists, mode_post_dist) = \
+        ((latent1_post_samples, latent2_post_samples, mode_post_sample),
+            (latent1_post_dists, latent2_post_dists, mode_post_dist)) = \
             self.latent.sample_posterior(actions_seq=actions_seq,
                                          features_seq=features_seq)
 
         # Sample from prior dynamics
-        (latent1_pri_samples, latent2_pri_samples, mode_pri_sample), \
-        (latent1_pri_dists, latent2_pri_dists, mode_pri_dist) = \
+        ((latent1_pri_samples, latent2_pri_samples, mode_pri_sample),
+            (latent1_pri_dists, latent2_pri_dists, mode_pri_dist)) = \
             self.latent.sample_prior(features_seq)
 
         # KL divergence losses
@@ -246,8 +245,8 @@ class DisentanglingTrainer(LatentTrainer):
         if self._is_log(self.learning_log_interval):
 
             # Reconstruction error
-            reconst_error = (actions_seq - actions_seq_dists.loc)\
-                .pow(2).mean(dim=(0,1)).sum()
+            reconst_error = (actions_seq - actions_seq_dists.loc) \
+                .pow(2).mean(dim=(0, 1)).sum()
             self._summary_log('stats/reconst_error', reconst_error)
             print('reconstruction error: %f', reconst_error)
 
@@ -278,8 +277,8 @@ class DisentanglingTrainer(LatentTrainer):
                 plt.plot(gt_actions[:, dim].numpy())
                 plt.plot(post_actions[:, dim].numpy())
                 fig = plt.gcf()
-                self.writer.add_figure('Reconstruction test dim'+str(dim), fig,
-                                        global_step=self.learning_steps )
+                self.writer.add_figure('Reconstruction test dim' + str(dim), fig,
+                                       global_step=self.learning_steps)
                 plt.clf()
 
             #with torch.no_grad():
@@ -300,7 +299,6 @@ class DisentanglingTrainer(LatentTrainer):
         return latent_loss
 
     def save_models(self):
-        name = self.run_id + '_model'
         self.latent.save(os.path.join(self.model_dir, self.run_id))
         #np.save(self.memory, os.path.join(self.model_dir, 'memory.pth'))
 
@@ -311,4 +309,3 @@ class DisentanglingTrainer(LatentTrainer):
         if type(data) == torch.Tensor:
             data = data.detach().cpu().item()
         self.writer.add_scalar(data_name, data, self.learning_steps)
-

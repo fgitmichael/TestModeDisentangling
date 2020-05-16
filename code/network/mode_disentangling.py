@@ -66,10 +66,10 @@ class BiRnn(BaseNetwork):
         # Initial state (dim: num_layers * num_directions, batch, hidden_size)
         if self.learn_init:
             num_directions = 2 if self.f_rnn.bidirectional else 1
-            input = torch.ones(self.f_rnn.num_layers*num_directions,
-                               batch_size,
-                               1).to(x.device)
-            hidden_init = self.init_network(input).rsample()
+            init_input = torch.ones(self.f_rnn.num_layers * num_directions,
+                                    batch_size,
+                                    1).to(x.device)
+            hidden_init = self.init_network(init_input).rsample()
 
             # LSTM recursion and extraction of the ends of the two directions
             # (front: end of the forward pass, back: end of the backward pass)
@@ -82,14 +82,14 @@ class BiRnn(BaseNetwork):
         (forward_out, backward_out) = torch.chunk(rnn_out, 2, dim=2)
 
         # Get the ends of the two directions
-        front = forward_out[num_sequence-1, :, :]
+        front = forward_out[num_sequence - 1, :, :]
         back = backward_out[0, :, :]
 
         # Stack along hidden_dim and return
         return torch.cat([front, back], dim=1)
 
 
-#TODO: Move this class as inner class to ModeDisentanglingNetwork as it is
+# TODO: Move this class as inner class to ModeDisentanglingNetwork as it is
 #      too sophisticated
 class ModeEncoder(BaseNetwork):
 
@@ -197,18 +197,18 @@ class ModeDisentanglingNetwork(BaseNetwork):
             leaky_slope=leaky_slope)
 
     def sample_prior(self, features_seq, init_actions=None):
-        '''
+        """
         Sample from prior dynamics (with conditioning on initial actions)
 
         Args:
-            feature_seq      : (N, S, *feature_shape) tensor of feature sequences
+            features_seq      : (N, S, *feature_shape) tensor of feature sequences
             init_actions     : (N, *action_shape) tensor of initial actions or None
         Returns:
             latent1_samples  : (N, S+1, L1) tensor of sampled latent vectors.
             latent2_samples  : (N, S+1, L2) tensor of sampled latent vectors.
             latent1_dists    : (S+1) length list of (N, L1) distributions.
             latent2_dists    : (S+1) length list of (N, L2) distributions.
-        '''
+        """
         num_sequences = features_seq.size(1)
         features_seq = torch.transpose(features_seq, 0, 1)
 
@@ -240,11 +240,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
             else:
                 # p(z1(t) | z2(t-1), feature(t-1))
                 latent1_dist = self.latent1_prior(
-                    [latent2_samples[t-1], features_seq[t-1]])
+                    [latent2_samples[t - 1], features_seq[t - 1]])
                 latent1_sample = latent1_dist.rsample()
                 # p(z2(t) | z1(t), z2(t-1), feature(t-1))
                 latent2_dist = self.latent2_prior(
-                    [latent1_sample, latent2_samples[t-1], features_seq[t-1]])
+                    [latent1_sample, latent2_samples[t - 1], features_seq[t - 1]])
                 latent2_sample = latent2_dist.rsample()
 
             latent1_samples.append(latent1_sample)
@@ -262,7 +262,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
                (latent1_dists, latent2_dists, mode_dist)
 
     def sample_posterior(self, actions_seq, features_seq):
-        '''
+        """
         Sample from posterior dynamics and mode
 
         Args:
@@ -275,7 +275,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
             latent1_dists   : (S+1) length list of (N, L1) distributions
             latent2_dists   : (S+1) length list of (N, L2) distributions
             mode_dist       : scalar vector of (N, mode_dim) distributions
-        '''
+        """
         num_sequences = features_seq.size(1)
         actions_seq = torch.transpose(actions_seq, 0, 1)
         features_seq = torch.transpose(features_seq, 0, 1)
@@ -286,7 +286,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         latent2_dists = []
 
         for t in range(num_sequences + 1):
-            if t==0:
+            if t == 0:
                 # q(z1(0) | action(0))
                 latent1_dist = self.latent1_init_posterior(actions_seq[t])
                 latent1_sample = latent1_dist.rsample()
@@ -296,11 +296,11 @@ class ModeDisentanglingNetwork(BaseNetwork):
             else:
                 # q(z1(t) | action(t), z2(t-1), features(t-1))
                 latent1_dist = self.latent1_posterior(
-                    [actions_seq[t], latent2_samples[t-1], features_seq[t-1]])
+                    [actions_seq[t], latent2_samples[t - 1], features_seq[t - 1]])
                 latent1_sample = latent1_dist.rsample()
                 # q(z2(t) | z1(t), z2(t-1), features(t-1))
                 latent2_dist = self.latent2_posterior(
-                    [latent1_sample, latent2_samples[t-1], features_seq[t-1]])
+                    [latent1_sample, latent2_samples[t - 1], features_seq[t - 1]])
                 latent2_sample = latent2_dist.rsample()
 
             latent1_samples.append(latent1_sample)
@@ -319,13 +319,3 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         return (latent1_samples, latent2_samples, mode_sample), \
                (latent1_dists, latent2_dists, mode_dist)
-
-
-
-
-
-
-
-
-
-
