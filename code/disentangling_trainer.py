@@ -32,7 +32,7 @@ class DisentanglingTrainer(LatentTrainer):
             num_steps = 3000000,
             initial_latent_steps = 100000,
             batch_size = 256,
-            latent_batch_size = 64,
+            latent_batch_size = 42,
             num_sequences = num_sequences,
             latent_lr = 0.0001,
             feature_dim = 256,
