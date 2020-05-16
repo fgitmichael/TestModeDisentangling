@@ -22,7 +22,7 @@ class DisentanglingTrainer(LatentTrainer):
                  log_dir,
                  skill_policy_path,
                  seed,
-                 num_sequences=50,
+                 num_sequences=25,
                  cuda=False
                  ):
         parent_kwargs = dict(

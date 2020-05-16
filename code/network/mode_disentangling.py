@@ -37,7 +37,7 @@ class BiRnn(BaseNetwork):
     def __init__(self,
                  input_dim,
                  hidden_rnn_dim,
-                 rnn_layers,
+                 rnn_layers=1,
                  learn_initial_state=True):
         super(BiRnn, self).__init__()
 
@@ -46,7 +46,7 @@ class BiRnn(BaseNetwork):
         #       (batch, seq, feature)
         self.input_dim = input_dim
         self.hidden_rnn_dim = hidden_rnn_dim
-        self.f_rnn = nn.GRU(self.input_dim, self.hidden_rnn_dim, 1,
+        self.f_rnn = nn.GRU(self.input_dim, self.hidden_rnn_dim,
                             num_layers=rnn_layers,
                             bidirectional=True)
 
