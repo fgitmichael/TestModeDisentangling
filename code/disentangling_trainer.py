@@ -24,7 +24,6 @@ class DisentanglingTrainer(LatentTrainer):
                  skill_policy_path,
                  seed,
                  run_id,
-                 run_comment='',
                  feature_dim=256,
                  num_sequences=40,
                  cuda=False,
@@ -56,7 +55,7 @@ class DisentanglingTrainer(LatentTrainer):
         self.state_rep = state_rep
 
         # Comment for summery writer
-        summary_comment = self.run_id + run_comment
+        summary_comment = self.run_id
 
         # Environment
         self.env = env
@@ -301,7 +300,8 @@ class DisentanglingTrainer(LatentTrainer):
         return latent_loss
 
     def save_models(self):
-        self.latent.save(os.path.join(self.model_dir, self.run_id))
+        self.latent.save(os.path.join(self.model_dir,
+                                      self.run_id + 'model.pth'))
         #np.save(self.memory, os.path.join(self.model_dir, 'memory.pth'))
 
     def _is_log(self, log_interval):

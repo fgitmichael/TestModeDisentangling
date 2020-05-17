@@ -44,6 +44,7 @@ def run():
 
     # Directories
     run_id = f'slac-seed{args.seed}-{datetime.now().strftime("%Y%m%d-%H%M")}'
+    run_id += args.run_comment
     dir_name = f'{args.domain_name}-{args.task_name}'
     log_dir_base = os.path.join(
         'logs',
@@ -77,7 +78,6 @@ def run():
                                  log_dir=log_dir,
                                  skill_policy_path=skill_policy_path,
                                  run_id=run_id,
-                                 run_comment=args.run_comment,
                                  state_rep=args.state_rep,
                                  feature_dim=feature_dim,
                                  **configs)
