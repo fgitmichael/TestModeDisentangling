@@ -18,6 +18,7 @@ def run():
     parser.add_argument('--policy_path', type=str,
                         default='./data/01_Skill_policy_half_cheetah/params.pkl')
     parser.add_argument('--log_folder', type=str, default=None)
+    parser.add_argument('--run_comment', type=str, default='')
     parser.add_argument('--state_rep', action='store_true')
     args = parser.parse_args()
 
@@ -76,6 +77,7 @@ def run():
                                  log_dir=log_dir,
                                  skill_policy_path=skill_policy_path,
                                  run_id=run_id,
+                                 run_comment=args.run_comment,
                                  state_rep=args.state_rep,
                                  feature_dim=feature_dim,
                                  **configs)

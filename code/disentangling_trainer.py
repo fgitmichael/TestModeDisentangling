@@ -6,6 +6,7 @@ from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 
+
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
@@ -23,15 +24,16 @@ class DisentanglingTrainer(LatentTrainer):
                  skill_policy_path,
                  seed,
                  run_id,
+                 run_comment='',
                  feature_dim=256,
-                 num_sequences=25,
+                 num_sequences=40,
                  cuda=False,
                  ):
         parent_kwargs = dict(
             num_steps=3000000,
             initial_latent_steps=100000,
             batch_size=256,
-            latent_batch_size=32,
+            latent_batch_size=64,
             num_sequences=num_sequences,
             latent_lr=0.0001,
             feature_dim=feature_dim,
@@ -54,7 +56,7 @@ class DisentanglingTrainer(LatentTrainer):
         self.state_rep = state_rep
 
         # Comment for summery writer
-        summary_comment = self.run_id + ''
+        summary_comment = self.run_id + run_comment
 
         # Environment
         self.env = env
