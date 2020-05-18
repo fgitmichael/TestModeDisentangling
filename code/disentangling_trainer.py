@@ -300,8 +300,9 @@ class DisentanglingTrainer(LatentTrainer):
         return latent_loss
 
     def save_models(self):
-        self.latent.save(os.path.join(self.model_dir,
-                                      self.run_id + 'model.pth'))
+        path_name = os.path.join(self.model_dir, self.run_id)
+        self.latent.save(path_name + 'model_state_dict.pth')
+        torch.save(self.latent, path_name + 'whole_model.pth')
         #np.save(self.memory, os.path.join(self.model_dir, 'memory.pth'))
 
     def _is_log(self, log_interval):
