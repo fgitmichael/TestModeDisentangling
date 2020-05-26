@@ -4,8 +4,10 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.distributions import Normal
 
-from .base import BaseNetwork, create_linear_network, weights_init_xavier
-from .latent import Gaussian, ConstantGaussian, Decoder, Encoder
+from .base import BaseNetwork, create_linear_network,\
+    weights_init_xavier
+from .latent import Gaussian, ConstantGaussian, \
+    Decoder, Encoder, EncoderStateRep
 
 
 class LogvarGaussian(Gaussian):
@@ -184,7 +186,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         # feat(t) = x(t) : This encoding is performed deterministically.
         if state_rep:
             # State representation
-            self.encoder = nn.Linear(observation_shape[0], feature_dim)
+            self.encoder = EncoderStateRep(observation_shape[0], feature_dim)
         else:
             # Conv-nets for pixel observations
             self.encoder = Encoder(
