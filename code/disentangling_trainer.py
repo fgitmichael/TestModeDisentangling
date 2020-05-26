@@ -47,7 +47,7 @@ class DisentanglingTrainer(LatentTrainer):
             grad_clip=None,
             start_steps=10000,
             training_log_interval=100,
-            learning_log_interval=100,
+            learning_log_interval=50,
             cuda=cuda,
             seed=seed)
 
@@ -209,39 +209,63 @@ class DisentanglingTrainer(LatentTrainer):
             self.latent_optim, self.latent, latent_loss, self.grad_clip)
 
         # Write net params
-        if self._is_log(self.learning_log_interval // 2):
+        if self._is_log(self.learning_log_interval * 5):
             self.latent.write_net_params(self.writer, self.learning_steps)
 
-    def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
+    def calc_latent_loss(self,
+                         images_seq,
+                         actions_seq,
+                         rewards_seq,
                          dones_seq):
         # Get features from images
         features_seq = self.latent.encoder(images_seq)
 
         # Sample from posterior dynamics
-        ((latent1_post_samples, latent2_post_samples, mode_post_sample),
+        ((latent1_post_samples, latent2_post_samples, mode_post_samples),
             (latent1_post_dists, latent2_post_dists, mode_post_dist)) = \
             self.latent.sample_posterior(actions_seq=actions_seq,
                                          features_seq=features_seq)
 
         # Sample from prior dynamics
-        ((latent1_pri_samples, latent2_pri_samples, mode_pri_sample),
+        ((latent1_pri_samples, latent2_pri_samples, mode_pri_samples),
             (latent1_pri_dists, latent2_pri_dists, mode_pri_dist)) = \
             self.latent.sample_prior(features_seq)
 
         # KL divergence losses
-        kld_losses = calc_kl_divergence([mode_post_dist], [mode_pri_dist]) + \
-            calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
+        latent_kld = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
+        latent1_dim = latent1_post_samples.size(2)
+        latent_kld /= latent1_dim
+
+        mode_kld = calc_kl_divergence([mode_post_dist], [mode_pri_dist])
+        mode_dim = mode_post_samples.size(2)
+        mode_kld /= mode_dim
+        kld_losses = mode_kld + latent_kld
+
 
         # Log likelihood loss of generated actions
-        mode_post_sample = mode_post_sample.unsqueeze(1)
-        mode_post_samples = mode_post_sample.expand(
-            mode_post_sample.size(0), latent1_post_samples.size(1), mode_post_sample.size(2))
         actions_seq_dists = self.latent.decoder(
             [latent1_post_samples, latent2_post_samples, mode_post_samples])
-        log_likelihood_loss = actions_seq_dists.log_prob(actions_seq).mean(dim=0).sum()
+        log_likelihood = actions_seq_dists.log_prob(actions_seq).mean(dim=0).mean()
+
+        # Maximum Mean Discrepancy (MMD)
+        mode_pri_sample = mode_pri_samples[0]
+        mode_post_sample = mode_post_samples[0]
+        mmd_mode = self.compute_mmd_tutorial(mode_pri_sample, mode_post_sample)
+        mmd_latent = 0
+        latent1_post_samples_trans = latent1_post_samples.transpose(0, 1)
+        latent1_pri_samples_trans = latent1_pri_samples.transpose(0, 1)
+        for idx in range(latent1_post_samples_trans.size(0)):
+            mmd_latent += self.compute_mmd_tutorial(latent1_pri_samples_trans[idx],
+                                                    latent1_post_samples_trans[idx])
+        mmd_loss = mmd_latent + 10 * mmd_mode
 
         # Loss
-        latent_loss = kld_losses - log_likelihood_loss
+        reg_weight = 1
+        alpha = 1.
+        kld_info_weighted = (1. - alpha) * kld_losses
+        mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
+        latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
+        #latent_loss = -log_likelihood + kld_losses
 
         # Logging
         if self._is_log(self.learning_log_interval):
@@ -253,15 +277,27 @@ class DisentanglingTrainer(LatentTrainer):
             print('reconstruction error: %f', reconst_error)
 
             # KL divergence
-            mode_kldiv = calc_kl_divergence([mode_post_dist], [mode_pri_dist])
-            seq_kldiv = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
-            kldiv = mode_kldiv + seq_kldiv
-            self._summary_log('stats/mode_kldiv', mode_kldiv)
-            self._summary_log('stats/seq_kldiv', seq_kldiv)
-            self._summary_log('stats/kldiv', kldiv)
+            mode_kldiv_standard = calc_kl_divergence([mode_post_dist], [mode_pri_dist])
+            seq_kldiv_standard = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
+            kldiv_standard = mode_kldiv_standard + seq_kldiv_standard
+
+            self._summary_log('stats_kldiv_standard/kldiv_standard', kldiv_standard)
+            self._summary_log('stats_kldiv_standard/mode_kldiv_standard', mode_kldiv_standard)
+            self._summary_log('stats_kldiv_standard/seq_kldiv_standard', seq_kldiv_standard)
+
+            self._summary_log('stats_kldiv/mode_kldiv_used_for_loss', mode_kld)
+            self._summary_log('stats_kldiv/latent_kldiv_used_for_loss', latent_kld)
+            self._summary_log('stats_kldiv/klddiv used for loss', kld_losses)
+
 
             # Log Likelyhood
-            self._summary_log('stats/log-likelyhood', log_likelihood_loss)
+            self._summary_log('stats/log-likelyhood', log_likelihood)
+
+            # MMD
+            self._summary_log('stats_mmd/mmd_weighted', mmd_info_weighted)
+            self._summary_log('stats_mmd/kld_weighted', kld_info_weighted)
+            self._summary_log('stats_mmd/mmd_mode', mmd_mode)
+            self._summary_log('stats_mmd/mmd_latent', mmd_latent)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
@@ -283,22 +319,25 @@ class DisentanglingTrainer(LatentTrainer):
                                        global_step=self.learning_steps)
                 plt.clf()
 
-            #with torch.no_grad():
-            #    pri_actions = self.latent.decoder(
-            #        [latent1_pri_samples[:1], latent2_pri_samples[:1]]
-            #    ).loc[0].detach().cpu()
-            #    cond_pri_samples, _ = self.latent.sample_prior(
-            #        features_seq[:1], actions_seq[:1, 0]
-            #    )
-            #    cond_pri_actions = self.latent.decoder(
-            #        cond_pri_samples.loc[0].detach().cpu()
-            #    )
-
-            #actions = torch.cat(
-            #    [gt_actions, post_actions, cond_pri_actions, pri_actions], dim=-2
-            #)
-
         return latent_loss
+
+    def compute_kernel_tutorial(self, x, y):
+        x_size = x.size(0)
+        y_size = y.size(0)
+        dim = x.size(1)
+        x = x.unsqueeze(1)  # (x_size, 1, dim)
+        y = y.unsqueeze(0)  # (1, y_size, dim)
+        tiled_x = x.expand(x_size, y_size, dim)
+        tiled_y = y.expand(x_size, y_size, dim)
+        kernel_input = (tiled_x - tiled_y).pow(2).mean(2) / float(dim)
+        return torch.exp(-kernel_input)  # (x_size, y_size)
+
+    def compute_mmd_tutorial(self, x, y):
+        x_kernel = self.compute_kernel_tutorial(x, x)
+        y_kernel = self.compute_kernel_tutorial(y, y)
+        xy_kernel = self.compute_kernel_tutorial(x, y)
+        mmd = x_kernel.mean() + y_kernel.mean() - 2 * xy_kernel.mean()
+        return mmd
 
     def save_models(self):
         path_name = os.path.join(self.model_dir, self.run_id)

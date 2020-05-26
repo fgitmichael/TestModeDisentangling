@@ -209,7 +209,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         Returns:
             latent1_samples  : (N, S+1, L1) tensor of sampled latent vectors.
             latent2_samples  : (N, S+1, L2) tensor of sampled latent vectors.
-            mode_samples     : (N, mode_dim) tensor of sampled mode vectors.
+            mode_samples     : (N, S+1, mode_dim) tensor of sampled mode vectors.
             latent1_dists    : (S+1) length list of (N, L1) distributions.
             latent2_dists    : (S+1) length list of (N, L2) distributions.
 
@@ -262,8 +262,9 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         mode_dist = self.mode_prior(features_seq[0])
         mode_sample = mode_dist.rsample()
+        mode_samples = self._broadcast_mode_samples(mode_sample, latent1_samples)
 
-        return (latent1_samples, latent2_samples, mode_sample), \
+        return (latent1_samples, latent2_samples, mode_samples), \
                (latent1_dists, latent2_dists, mode_dist)
 
     def sample_posterior(self, actions_seq, features_seq):
@@ -276,7 +277,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         Returns:
             latent1_samples : (N, S+1, L1) tensor of sampled latent vectors
             latent2_samples : (N, S+1, L2) tensor of sampled latent vectors
-            mode_samples    : (N, 1, mode_dim) tensor of sampled modes
+            mode_samples    : (N, S+1, mode_dim) tensor of sampled modes
             latent1_dists   : (S+1) length list of (N, L1) distributions
             latent2_dists   : (S+1) length list of (N, L2) distributions
             mode_dist       : scalar vector of (N, mode_dim) distributions
@@ -321,12 +322,36 @@ class ModeDisentanglingNetwork(BaseNetwork):
         mode_dist = self.mode_posterior(features_seq=features_seq,
                                         actions_seq=actions_seq)
         mode_sample = mode_dist.rsample()
+        mode_samples = self._broadcast_mode_samples(mode_sample, latent1_samples)
 
-        return (latent1_samples, latent2_samples, mode_sample), \
+        return (latent1_samples, latent2_samples, mode_samples), \
                (latent1_dists, latent2_dists, mode_dist)
 
+    def _broadcast_mode_samples(self, mode_sample, latent1_samples):
+        """
+        Args:
+        mode_sample        : (N, 1, mode_dim) Tensor
+                             sample of mode variable that will be repeated to the length
+                             of the sequence in latent1_samples
+        latent1_samples    : (N, S+1, L1) Tensor
+                             Used to get the dimension
+
+        Returns:
+        mode_samples       : (N, S+1, mode_dim) Tensor
+        """
+        assert len(latent1_samples.shape) == 3, 'latent1_samples is not a three dimensional' \
+                                                'Tensor'
+
+        mode_sample = mode_sample.unsqueeze(1)
+        mode_samples = mode_sample.expand(
+            mode_sample.size(0), latent1_samples.size(1), mode_sample.size(2))
+
+        return mode_samples
+
     def sample_mode(self):
-        # Sample from the mode prior
+        """
+        Sample from mode prior
+        """
         batch_size = 1
         return self.mode_prior(torch.zeros(batch_size, 1)).sample()
 
