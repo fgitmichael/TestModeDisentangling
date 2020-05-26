@@ -209,8 +209,10 @@ class ModeDisentanglingNetwork(BaseNetwork):
         Returns:
             latent1_samples  : (N, S+1, L1) tensor of sampled latent vectors.
             latent2_samples  : (N, S+1, L2) tensor of sampled latent vectors.
+            mode_samples     : (N, mode_dim) tensor of sampled mode vectors.
             latent1_dists    : (S+1) length list of (N, L1) distributions.
             latent2_dists    : (S+1) length list of (N, L2) distributions.
+
         """
         num_sequences = features_seq.size(1)
         features_seq = torch.transpose(features_seq, 0, 1)
@@ -322,3 +324,12 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         return (latent1_samples, latent2_samples, mode_sample), \
                (latent1_dists, latent2_dists, mode_dist)
+
+    def sample_mode(self):
+        # Sample from the mode prior
+        batch_size = 1
+        return self.mode_prior(torch.zeros(batch_size, 1)).sample()
+
+        return action
+
+
