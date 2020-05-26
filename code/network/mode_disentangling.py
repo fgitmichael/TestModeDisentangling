@@ -189,14 +189,16 @@ class ModeDisentanglingNetwork(BaseNetwork):
             self.encoder = EncoderStateRep(observation_shape[0], feature_dim)
         else:
             # Conv-nets for pixel observations
-            self.encoder = Encoder(
-                observation_shape[0], feature_dim, leaky_slope=leaky_slope)
+            self.encoder = Encoder(observation_shape[0], feature_dim,
+                                   leaky_slope=leaky_slope)
 
         # p(u(t) | z2(t), z1(t), m)
+        # TODO: Test if fixed variance performs better than learned variance (as in VAE)
         self.decoder = Gaussian(
             latent1_dim + latent2_dim + mode_dim,
             action_shape[0],
             hidden_units,
+            std=1e-1,
             leaky_slope=leaky_slope)
 
     def sample_prior(self, features_seq, init_actions=None):
