@@ -37,15 +37,15 @@ class DisentanglingTrainer(LatentTrainer):
             latent_lr=0.0001,
             feature_dim=feature_dim,
             latent1_dim=4,
-            latent2_dim=32,
-            mode_dim=200,
+            latent2_dim=16,
+            mode_dim=100,
             hidden_units=[256, 256],
-            hidden_rnn_dim=100,
-            rnn_layers=1,
+            hidden_rnn_dim=200,
+            rnn_layers=3,
             memory_size=1e5,
             leaky_slope=0.2,
             grad_clip=None,
-            start_steps=10000,
+            start_steps=5000,
             training_log_interval=100,
             learning_log_interval=50,
             cuda=cuda,
@@ -166,6 +166,7 @@ class DisentanglingTrainer(LatentTrainer):
         state = self.env.reset()
         self.memory.set_initial_state(state)
         skill = np.random.randint(self.policy.stochastic_policy.skill_dim)
+        skill = np.random.choice([3, 4, 5, 7, 9], 1).item()
         self.set_policy_skill(skill)
 
         next_state = state
@@ -234,38 +235,59 @@ class DisentanglingTrainer(LatentTrainer):
         # KL divergence losses
         latent_kld = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
         latent1_dim = latent1_post_samples.size(2)
+        seq_length = latent1_post_samples.size(1)
         latent_kld /= latent1_dim
+        latent_kld /= seq_length
 
         mode_kld = calc_kl_divergence([mode_post_dist], [mode_pri_dist])
         mode_dim = mode_post_samples.size(2)
         mode_kld /= mode_dim
         kld_losses = mode_kld + latent_kld
 
-
         # Log likelihood loss of generated actions
         actions_seq_dists = self.latent.decoder(
             [latent1_post_samples, latent2_post_samples, mode_post_samples])
         log_likelihood = actions_seq_dists.log_prob(actions_seq).mean(dim=0).mean()
 
+        # Log likelihood loss of generated actions with latent dynamic priors and mode
+        # posterior
+        actions_seq_dists_mode = self.latent.decoder(
+            [latent1_pri_samples.detach(), latent2_pri_samples.detach(), mode_post_samples])
+        ll_dyn_pri_mode_post = actions_seq_dists_mode.log_prob(actions_seq).mean(dim=0).mean()
+
+        # Log likelihood loss of generated actions with latent dynamic posteriors and
+        # mode prior
+        action_seq_dists_dyn = self.latent.decoder(
+            [latent1_post_samples, latent2_post_samples, mode_pri_samples]
+        )
+        ll_dyn_post_mode_pri = action_seq_dists_dyn.log_prob(actions_seq).mean(dim=0).mean()
+
         # Maximum Mean Discrepancy (MMD)
-        mode_pri_sample = mode_pri_samples[0]
-        mode_post_sample = mode_post_samples[0]
+        mode_pri_sample = mode_pri_samples[:, 0, :]
+        mode_post_sample = mode_post_samples[:, 0, :]
         mmd_mode = self.compute_mmd_tutorial(mode_pri_sample, mode_post_sample)
         mmd_latent = 0
-        latent1_post_samples_trans = latent1_post_samples.transpose(0, 1)
-        latent1_pri_samples_trans = latent1_pri_samples.transpose(0, 1)
-        for idx in range(latent1_post_samples_trans.size(0)):
-            mmd_latent += self.compute_mmd_tutorial(latent1_pri_samples_trans[idx],
-                                                    latent1_post_samples_trans[idx])
-        mmd_loss = mmd_latent + 10 * mmd_mode
+        #latent1_post_samples_trans = latent1_post_samples.transpose(0, 1)
+        #latent1_pri_samples_trans = latent1_pri_samples.transpose(0, 1)
+        #for idx in range(latent1_post_samples_trans.size(0)):
+        #    mmd_latent += self.compute_mmd_tutorial(latent1_pri_samples_trans[idx],
+        #                                            latent1_post_samples_trans[idx])
+        latent1_post_samples_trans = latent1_post_samples.\
+            view(latent1_post_samples.size(0), -1)
+        latent1_pri_samples_trans = latent1_pri_samples.\
+            view(latent1_pri_samples.size(0), -1)
+        mmd_latent = self.compute_mmd_tutorial(
+            latent1_pri_samples_trans, latent1_post_samples_trans)
+        mmd_mode_weighted = mmd_mode
+        mmd_latent_weighted = mmd_latent * 100
+        mmd_loss = mmd_latent_weighted + mmd_mode_weighted
 
         # Loss
-        reg_weight = 1
+        reg_weight = 1000.
         alpha = 1.
         kld_info_weighted = (1. - alpha) * kld_losses
         mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
         latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
-        #latent_loss = -log_likelihood + kld_losses
 
         # Logging
         if self._is_log(self.learning_log_interval):
@@ -275,6 +297,13 @@ class DisentanglingTrainer(LatentTrainer):
                 .pow(2).mean(dim=(0, 1)).sum()
             self._summary_log('stats/reconst_error', reconst_error)
             print('reconstruction error: %f', reconst_error)
+
+            reconst_err_mode_post = (actions_seq - actions_seq_dists_mode.loc)\
+                .pow(2).mean(dim=(0,1)).sum()
+            reconst_err_dyn_post = (actions_seq - action_seq_dists_dyn.loc)\
+                .pow(2).mean(dim=(0, 1)).sum()
+            self._summary_log('stats/reconst_error mode post', reconst_err_mode_post)
+            self._summary_log('stats/reconst_error dyn post', reconst_err_dyn_post)
 
             # KL divergence
             mode_kldiv_standard = calc_kl_divergence([mode_post_dist], [mode_pri_dist])
@@ -289,15 +318,16 @@ class DisentanglingTrainer(LatentTrainer):
             self._summary_log('stats_kldiv/latent_kldiv_used_for_loss', latent_kld)
             self._summary_log('stats_kldiv/klddiv used for loss', kld_losses)
 
-
             # Log Likelyhood
             self._summary_log('stats/log-likelyhood', log_likelihood)
+            self._summary_log('stats/log-likelyhood dyn pri,  mode post', ll_dyn_pri_mode_post)
+            self._summary_log('stats/log-likelyhood dyn post, mode pri', ll_dyn_post_mode_pri)
 
             # MMD
             self._summary_log('stats_mmd/mmd_weighted', mmd_info_weighted)
             self._summary_log('stats_mmd/kld_weighted', kld_info_weighted)
-            self._summary_log('stats_mmd/mmd_mode', mmd_mode)
-            self._summary_log('stats_mmd/mmd_latent', mmd_latent)
+            self._summary_log('stats_mmd/mmd_mode_weighted', mmd_mode_weighted)
+            self._summary_log('stats_mmd/mmd_latent_weighted', mmd_latent_weighted)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
@@ -305,21 +335,115 @@ class DisentanglingTrainer(LatentTrainer):
             # Save Model
             self.latent.save(os.path.join(self.model_dir, 'model.pth'))
 
-            # Reconstruction test
-            rand_batch = np.random.choice(actions_seq.size(0))
-            action_dim = actions_seq.size(2)
-            gt_actions = actions_seq[rand_batch].detach().cpu()
-            post_actions = actions_seq_dists.loc[rand_batch].detach().cpu()
-            for dim in range(action_dim):
-                plt.interactive(False)
-                plt.plot(gt_actions[:, dim].numpy())
-                plt.plot(post_actions[:, dim].numpy())
-                fig = plt.gcf()
-                self.writer.add_figure('Reconstruction test dim' + str(dim), fig,
-                                       global_step=self.learning_steps)
-                plt.clf()
+            # Reconstruction Test
+            rand_batch_idx = np.random.choice(actions_seq.size(0))
+            self._reconstruction_post_test(rand_batch_idx,
+                                           actions_seq,
+                                           actions_seq_dists)
+            self._reconstruction_mode_post_test(rand_batch_idx,
+                                                actions_seq,
+                                                mode_post_samples,
+                                                latent1_pri_samples,
+                                                latent2_pri_samples)
+            self._reconstruction_dyn_post_test(rand_batch_idx,
+                                               actions_seq,
+                                               latent1_post_samples,
+                                               latent2_post_samples,
+                                               mode_pri_samples)
 
         return latent_loss
+
+    def _reconstruction_post_test(self,rand_batch_idx, actions_seq, actions_seq_dists):
+        """
+        Test reconstruction of inferred posterior
+        Args:
+            rand_batch_idx      : which part of batch to use
+            actions_seq         : actions sequence sampled from data
+            actions_seq_dists   : distribution of inferred posterior actions (reconstruction)
+        """
+        # Reconstruction test
+        rand_batch = rand_batch_idx
+        action_dim = actions_seq.size(2)
+        gt_actions = actions_seq[rand_batch].detach().cpu()
+        post_actions = actions_seq_dists.loc[rand_batch].detach().cpu()
+        for dim in range(action_dim):
+            fig = self._reconstruction_test_plot(dim, gt_actions, post_actions)
+            self.writer.add_figure('Reconst_post_test/reconst test dim' + str(dim), fig,
+                                   global_step=self.learning_steps)
+            plt.clf()
+
+    def _reconstruction_mode_post_test(self,
+                                       rand_batch_idx,
+                                       actions_seq,
+                                       latent1_pri_samples,
+                                       latent2_pri_samples,
+                                       mode_post_samples):
+        """
+        Test if mode inference works
+        Args:
+            rand_batch_idx      : which part of batch to use
+            actions_seq         : actions sequence sampled from data
+            mode_post_samples   : Sample from the inferred mode posterior distribution
+            latent1_pri_samples : Samples from the dynamics prior
+            latent2_pri_samples : Samples from the dynamics prior
+        """
+        # Use random sample from batch
+        rand_batch = rand_batch_idx
+
+        # Decode
+        actions_seq_dists = self.latent.decoder([latent1_pri_samples[rand_batch],
+                                                 latent2_pri_samples[rand_batch],
+                                                 mode_post_samples[rand_batch]])
+
+        # Reconstruction test
+        action_dim = actions_seq.size(2)
+        gt_actions = actions_seq[rand_batch].detach().cpu()
+        post_actions = actions_seq_dists.loc.detach().cpu()
+
+        # Plot
+        for dim in range(action_dim):
+            fig = self._reconstruction_test_plot(dim, gt_actions, post_actions)
+            self.writer.add_figure('Reconst_mode_post_test/reconst test dim' + str(dim),
+                                   fig,
+                                   global_step=self.learning_steps)
+
+    def _reconstruction_dyn_post_test(self,
+                                      rand_batch_idx,
+                                      actions_seq,
+                                      latent1_post_samples,
+                                      latent2_post_samples,
+                                      mode_pri_samples):
+        """
+        Test the influence of the latent dynamics inference
+        """
+        # Use random sample from batch
+        rand_batch = rand_batch_idx
+
+        # Decode
+        actions_seq_dists = self.latent.decoder([latent1_post_samples[rand_batch],
+                                                 latent2_post_samples[rand_batch],
+                                                 mode_pri_samples[rand_batch]])
+
+        # Reconstruction test
+        action_dim = actions_seq.size(2)
+        gt_actions = actions_seq[rand_batch].detach().cpu()
+        post_actions = actions_seq_dists.loc.detach().cpu()
+
+        # Plot
+        for dim in range(action_dim):
+            fig = self._reconstruction_test_plot(dim, gt_actions, post_actions)
+            self.writer.add_figure('Reconst_dyn_post_test/reconst test dim' + str(dim),
+                                   fig,
+                                   global_step=self.learning_steps)
+
+    def _reconstruction_test_plot(self, dim, gt_actions, post_actions):
+        plt.interactive(False)
+        axes = plt.gca()
+        axes.set_ylim([-1.5, 1.5])
+        plt.plot(gt_actions[:, dim].numpy())
+        plt.plot(post_actions[:, dim].numpy())
+        fig = plt.gcf()
+        return fig
 
     def compute_kernel_tutorial(self, x, y):
         x_size = x.size(0)
@@ -333,6 +457,7 @@ class DisentanglingTrainer(LatentTrainer):
         return torch.exp(-kernel_input)  # (x_size, y_size)
 
     def compute_mmd_tutorial(self, x, y):
+        assert x.shape == y.shape
         x_kernel = self.compute_kernel_tutorial(x, x)
         y_kernel = self.compute_kernel_tutorial(y, y)
         xy_kernel = self.compute_kernel_tutorial(x, y)
