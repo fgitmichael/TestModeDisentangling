@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:upstream" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="71bc0587-a902-4580-aec0-85dbe85df480" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1bPVnVq9SHkJBbvDdNXCQieztAN" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../04_rlkit_diaynPolicySaving" />
+    <property name="restartRequiresConfirmation" value="false" />
+    <property name="settings.editor.selected.configurable" value="project.propVCSSupport.Mappings" />
+  </component>
+  <component name="RunManager" selected="Python.main_disentangling">
+    <configuration name="disentangling_trainer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="06_TestModeDisentangling" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/code" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/disentangling_trainer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="latent_model_trainer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="06_TestModeDisentangling" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/code" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/latent_model_trainer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main_disentangling" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$PROJECT_DIR$/../../WS1920/.pytorch/bin/python3" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/main_disentangling.py" />
+      <option name="PARAMETERS" value="--state_rep" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main_latent_trainer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="06_TestModeDisentangling" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/code" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/main_latent_trainer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="mode_disentangling" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="06_TestModeDisentangling" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/code/network" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/network/mode_disentangling.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="run_disent_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="06_TestModeDisentangling" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/test/run_disent_test.py" />
+      <option name="PARAMETERS" value="--model_path model/slac-seed0-20200518-2337rnn_layers_2whole_model.pth" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.run_disent_test" />
+        <item itemvalue="Python.disentangling_trainer" />
+        <item itemvalue="Python.mode_disentangling" />
+        <item itemvalue="Python.main_latent_trainer" />
+        <item itemvalue="Python.latent_model_trainer" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="71bc0587-a902-4580-aec0-85dbe85df480" name="Default Changelist" comment="" />
+      <created>1588533882561</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1588533882561</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="617" y="220" key="#Inspections" timestamp="1588694722338">
+      <screen x="47" y="24" width="1873" height="1056" />
+    </state>
+    <state x="617" y="220" key="#Inspections/47.24.1873.1056@47.24.1873.1056" timestamp="1588694722338" />
+    <state x="645" y="191" key="#Unittests_in_06_TestModeDisentangling" timestamp="1589533747671">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="645" y="191" key="#Unittests_in_06_TestModeDisentangling/47.24.1873.1176@47.24.1873.1176" timestamp="1589533747670" />
+    <state x="612" y="391" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1590533357346">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="612" y="391" key="#com.intellij.fileTypes.FileTypeChooser/47.24.1873.1176@47.24.1873.1176" timestamp="1590533357346" />
+    <state x="482" y="364" key="#com.intellij.ide.macro.MacrosDialog" timestamp="1590953756069">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state x="482" y="364" key="#com.intellij.ide.macro.MacrosDialog/43.24.1877.1176@43.24.1877.1176" timestamp="1590953756069" />
+    <state x="565" y="497" key="#com.intellij.ide.macro.MacrosDialog/47.24.1873.1176@47.24.1873.1176" timestamp="1589705851069" />
+    <state x="721" y="331" key="#com.intellij.ide.util.TreeClassChooserDialog" timestamp="1588758809424">
+      <screen x="47" y="24" width="1873" height="1056" />
+    </state>
+    <state x="721" y="331" key="#com.intellij.ide.util.TreeClassChooserDialog/47.24.1873.1056@47.24.1873.1056" timestamp="1588758809424" />
+    <state x="643" y="165" key="#disentangling_trainer" timestamp="1590954170646">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state x="643" y="165" key="#disentangling_trainer/43.24.1877.1176@43.24.1877.1176" timestamp="1590954170646" />
+    <state x="981" y="24" width="939" height="1176" key="#main_disentangling" timestamp="1590954219269">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state x="981" y="24" width="939" height="1176" key="#main_disentangling/43.24.1877.1176@43.24.1877.1176" timestamp="1590954219269" />
+    <state x="567" y="257" key="#main_disentangling/47.24.1873.1056@47.24.1873.1056" timestamp="1588671397050" />
+    <state x="47" y="24" width="1873" height="1176" key="#main_disentangling/47.24.1873.1176@47.24.1873.1176" timestamp="1590947263029" />
+    <state x="47" y="24" width="1873" height="1176" key="#run_disent_test" timestamp="1589879770359">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="47" y="24" width="1873" height="1176" key="#run_disent_test/47.24.1873.1176@47.24.1873.1176" timestamp="1589879770359" />
+    <state x="983" y="24" width="937" height="1056" key="#xdebugger.evaluate" timestamp="1588756496604">
+      <screen x="47" y="24" width="1873" height="1056" />
+    </state>
+    <state x="983" y="24" width="937" height="1056" key="#xdebugger.evaluate/47.24.1873.1056@47.24.1873.1056" timestamp="1588756496604" />
+    <state width="1871" height="691" key="DebuggerActiveHint" timestamp="1590580292572">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state width="1871" height="620" key="DebuggerActiveHint/47.24.1873.1056@47.24.1873.1056" timestamp="1588698102928" />
+    <state width="1871" height="691" key="DebuggerActiveHint/47.24.1873.1176@47.24.1873.1176" timestamp="1590580292572" />
+    <state x="146" y="68" width="1675" height="1033" maximized="true" key="DiffContextDialog" timestamp="1589833747390">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="146" y="68" width="1675" height="1033" maximized="true" key="DiffContextDialog/47.24.1873.1176@47.24.1873.1176" timestamp="1589833747390" />
+    <state x="771" y="357" width="424" height="482" key="FileChooserDialogImpl" timestamp="1590946242540">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="771" y="357" width="424" height="482" key="FileChooserDialogImpl/47.24.1873.1176@47.24.1873.1176" timestamp="1590946242540" />
+    <state width="1854" height="396" key="GridCell.Tab.0.bottom" timestamp="1590954181627">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.0.bottom/43.24.1877.1176@43.24.1877.1176" timestamp="1590954181627" />
+    <state width="1850" height="304" key="GridCell.Tab.0.bottom/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493064" />
+    <state width="1850" height="315" key="GridCell.Tab.0.bottom/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441394" />
+    <state width="1854" height="396" key="GridCell.Tab.0.center" timestamp="1590954181627">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.0.center/43.24.1877.1176@43.24.1877.1176" timestamp="1590954181627" />
+    <state width="1850" height="304" key="GridCell.Tab.0.center/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493064" />
+    <state width="1850" height="315" key="GridCell.Tab.0.center/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441394" />
+    <state width="1854" height="396" key="GridCell.Tab.0.left" timestamp="1590954181626">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.0.left/43.24.1877.1176@43.24.1877.1176" timestamp="1590954181626" />
+    <state width="1850" height="304" key="GridCell.Tab.0.left/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493064" />
+    <state width="1850" height="315" key="GridCell.Tab.0.left/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441394" />
+    <state width="1854" height="396" key="GridCell.Tab.0.right" timestamp="1590954181627">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.0.right/43.24.1877.1176@43.24.1877.1176" timestamp="1590954181627" />
+    <state width="1850" height="304" key="GridCell.Tab.0.right/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493064" />
+    <state width="1850" height="315" key="GridCell.Tab.0.right/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441394" />
+    <state width="1854" height="396" key="GridCell.Tab.1.bottom" timestamp="1590954180041">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.1.bottom/43.24.1877.1176@43.24.1877.1176" timestamp="1590954180041" />
+    <state width="1850" height="304" key="GridCell.Tab.1.bottom/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493065" />
+    <state width="1850" height="315" key="GridCell.Tab.1.bottom/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441338" />
+    <state width="1854" height="396" key="GridCell.Tab.1.center" timestamp="1590954180040">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.1.center/43.24.1877.1176@43.24.1877.1176" timestamp="1590954180040" />
+    <state width="1850" height="304" key="GridCell.Tab.1.center/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493065" />
+    <state width="1850" height="315" key="GridCell.Tab.1.center/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441338" />
+    <state width="1854" height="396" key="GridCell.Tab.1.left" timestamp="1590954180040">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.1.left/43.24.1877.1176@43.24.1877.1176" timestamp="1590954180040" />
+    <state width="1850" height="304" key="GridCell.Tab.1.left/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493064" />
+    <state width="1850" height="315" key="GridCell.Tab.1.left/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441338" />
+    <state width="1854" height="396" key="GridCell.Tab.1.right" timestamp="1590954180040">
+      <screen x="43" y="24" width="1877" height="1176" />
+    </state>
+    <state width="1854" height="396" key="GridCell.Tab.1.right/43.24.1877.1176@43.24.1877.1176" timestamp="1590954180040" />
+    <state width="1850" height="304" key="GridCell.Tab.1.right/47.24.1873.1056@47.24.1873.1056" timestamp="1589617493065" />
+    <state width="1850" height="315" key="GridCell.Tab.1.right/47.24.1873.1176@47.24.1873.1176" timestamp="1590602441338" />
+    <state x="477" y="191" key="SettingsEditor" timestamp="1589833758249">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="477" y="174" key="SettingsEditor/47.24.1873.1056@47.24.1873.1056" timestamp="1588600749246" />
+    <state x="477" y="191" key="SettingsEditor/47.24.1873.1176@47.24.1873.1176" timestamp="1589833758249" />
+    <state x="631" y="247" key="com.intellij.execution.console.ConsoleHistoryController$MyBrowseAction$1" timestamp="1588695368251">
+      <screen x="47" y="24" width="1873" height="1056" />
+    </state>
+    <state x="631" y="247" key="com.intellij.execution.console.ConsoleHistoryController$MyBrowseAction$1/47.24.1873.1056@47.24.1873.1056" timestamp="1588695368251" />
+    <state x="774" y="290" width="419" height="617" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1590944690740">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="774" y="263" width="419" height="617" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/47.24.1873.1056@47.24.1873.1056" timestamp="1589618191878" />
+    <state x="774" y="290" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/47.24.1873.1176@47.24.1873.1176" timestamp="1590944690740" />
+    <state x="454" y="381" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2" timestamp="1589887189241">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="526" y="189" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/47.24.1873.1056@47.24.1873.1056" timestamp="1588758810960" />
+    <state x="454" y="381" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/47.24.1873.1176@47.24.1873.1176" timestamp="1589887189241" />
+    <state x="646" y="260" width="672" height="756" key="search.everywhere.popup" timestamp="1589896793041">
+      <screen x="47" y="24" width="1873" height="1176" />
+    </state>
+    <state x="646" y="236" width="672" height="678" key="search.everywhere.popup/47.24.1873.1056@47.24.1873.1056" timestamp="1588777381151" />
+    <state x="646" y="260" width="672" height="756" key="search.everywhere.popup/47.24.1873.1176@47.24.1873.1176" timestamp="1589896793041" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/code/main.py</url>
+          <line>50</line>
+          <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/code/test/mode_actions_sampler.py</url>
+          <line>14</line>
+          <option name="timeStamp" value="26" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/code/network/base.py</url>
+          <line>36</line>
+          <option name="timeStamp" value="30" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/code/latent_model_trainer.py</url>
+          <line>269</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
