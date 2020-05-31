@@ -58,7 +58,7 @@ class OrdinaryEnvForPytorch(DmControlEnvForPytorch):
         return obs, sum_reward, done, None
 
     def reset(self):
-        return self._preprocess_obs(self.env.reset())
+        return self.env.reset()
 
     def render(self, mode='rgb_array'):
         return self.env.render(mode=mode)
