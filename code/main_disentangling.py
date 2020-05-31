@@ -2,7 +2,10 @@ import os
 import argparse
 from datetime import datetime
 
-from env import DmControlEnvForPytorch, GymEnvForPyTorch, DmControlEnvForPytorchBothObstype
+from env import DmControlEnvForPytorch,\
+    GymEnvForPyTorch,\
+    DmControlEnvForPytorchBothObstype,\
+    OrdinaryEnvForPytorch
 from disentangling_trainer import DisentanglingTrainer
 
 
@@ -20,6 +23,9 @@ def run():
     parser.add_argument('--log_folder', type=str, default=None)
     parser.add_argument('--run_comment', type=str, default='')
     parser.add_argument('--state_rep', action='store_true')
+    parser.add_argument('--env_type', type=str,
+                        default='dm_control',
+                        choices=['dm_control', 'ordinary_env'])
     args = parser.parse_args()
 
     # Config dict
@@ -30,12 +36,19 @@ def run():
 
     # Environment
     if args.state_rep:
-        env = DmControlEnvForPytorch(
-            args.domain_name,
-            args.task_name,
-            args.action_repeat,
-            obs_type='state'
-        )
+        if args.env_type == 'dm_control':
+            env = DmControlEnvForPytorch(
+                args.domain_name,
+                args.task_name,
+                args.action_repeat,
+                obs_type='state'
+            )
+        elif args.env_type == 'ordinary_env':
+            env = OrdinaryEnvForPytorch(
+                gym_id=args.env_id,
+                action_repeat=args.action_repeat,
+                obs_type='state'
+            )
     else:
         env = DmControlEnvForPytorchBothObstype(
             args.domain_name, args.task_name, args.action_repeat
