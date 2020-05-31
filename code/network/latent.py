@@ -118,7 +118,7 @@ class Encoder(BaseNetwork):
 class EncoderStateRep(BaseNetwork):
 
     def __init__(self, input_dim, output_dim, leaky_slope=0.2):
-        super(EncoderStateRep, self).__init__(self)
+        super(EncoderStateRep, self).__init__()
 
         self.net = create_linear_network(input_dim,
                                          output_dim,
