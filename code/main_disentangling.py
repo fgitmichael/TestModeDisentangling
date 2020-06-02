@@ -15,7 +15,7 @@ def run():
     parser.add_argument('--domain_name', type=str, default='cheetah')
     parser.add_argument('--task_name', type=str, default='run')
     parser.add_argument('--env_id', type=str, default='HalfCheetah-v2')
-    parser.add_argument('--action_repeat', type=int, default=4)
+    parser.add_argument('--action_repeat', type=int, default=1)
     parser.add_argument('--cuda', action='store_false')
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--policy_path', type=str,
