@@ -128,6 +128,40 @@ class ModeEncoder(BaseNetwork):
         return self.f_dist(rnn_result)
 
 
+class ModeEncoderCombined(BaseNetwork):
+
+    def __init__(self,
+                 feature_shape,
+                 action_shape,
+                 output_dim, # typicall mode_dim
+                 hidden_rnn_dim,
+                 hidden_units,
+                 rnn_layers):
+        super(BaseNetwork, self).__init__()
+
+        self.rnn = BiRnn(feature_shape + action_shape,
+                           hidden_rnn_dim=hidden_rnn_dim,
+                           rnn_layers=rnn_layers)
+
+        self.mode_dist = Gaussian(input_dim=2*hidden_rnn_dim,
+                                  output_dim=output_dim,
+                                  hidden_units=hidden_units)
+
+
+    def forward(self, features_seq, actions_seq):
+        # State-seq-len is always shorter by one than action_seq_len, but to stack the
+        # sequence need to have the same length. Solution: learn the missing element in the state seq
+        # Solution: discard last action
+        assert features_seq.size(0)+1 == actions_seq.size(0)
+        actions_seq = actions_seq[:-1, :, :]
+
+        seq = torch.cat([features_seq, actions_seq], dim=2)
+
+        rnn_result = self.rnn(seq)
+
+        return self.mode_dist(rnn_result)
+
+
 class ModeDisentanglingNetwork(BaseNetwork):
 
     def __init__(self,
@@ -177,12 +211,13 @@ class ModeDisentanglingNetwork(BaseNetwork):
         # q(z2(t+1) | z1(t+1), z2(t), a(t)) = p(z2(t+1) | z1(t+1), z2(t), a(t))
         self.latent2_posterior = self.latent2_prior
         # q(m | features(1:T-1), actions(1:T))
-        self.mode_posterior = ModeEncoder(feature_dim,
-                                          action_shape[0],
-                                          output_dim=mode_dim,
-                                          hidden_rnn_dim=hidden_rnn_dim,
-                                          rnn_layers=rnn_layers
-                                          )
+        self.mode_posterior = ModeEncoderCombined(feature_dim,
+                                                  action_shape[0],
+                                                  output_dim=mode_dim,
+                                                  hidden_rnn_dim=hidden_rnn_dim,
+                                                  hidden_units=hidden_units,
+                                                  rnn_layers=rnn_layers,
+                                                  )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
         if state_rep:
