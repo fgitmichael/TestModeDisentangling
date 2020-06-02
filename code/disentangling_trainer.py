@@ -287,7 +287,9 @@ class DisentanglingTrainer(LatentTrainer):
         alpha = 1.
         kld_info_weighted = (1. - alpha) * kld_losses
         mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
-        latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
+        #latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
+        latent_loss = -log_likelihood + latent_kld + mmd_mode_weighted
+        latent_loss *= 100
 
         # Logging
         if self._is_log(self.learning_log_interval):
