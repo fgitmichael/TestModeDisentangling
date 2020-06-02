@@ -190,6 +190,7 @@ class LatentTrainer:
             self.writer.add_scalar(
                 'loss/latent', latent_loss.detach().item(),
                 self.learning_steps)
+            self.save_models()
 
     def calc_latent_loss(self, images_seq, actions_seq, rewards_seq,
                          dones_seq):
