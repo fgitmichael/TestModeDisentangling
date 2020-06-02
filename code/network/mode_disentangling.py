@@ -101,6 +101,7 @@ class ModeEncoder(BaseNetwork):
                  action_shape,
                  output_dim,  # typically mode_dim
                  hidden_rnn_dim,
+                 hidden_units,
                  rnn_layers
                  ):
         super(ModeEncoder, self).__init__()
@@ -116,7 +117,7 @@ class ModeEncoder(BaseNetwork):
         # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
         self.f_dist = Gaussian(input_dim=4 * hidden_rnn_dim,
                                output_dim=output_dim,
-                               hidden_units=[256, 256])
+                               hidden_units=hidden_units)
 
     def forward(self, features_seq, actions_seq):
         feat_res = self.f_rnn_features(features_seq)
