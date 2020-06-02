@@ -170,7 +170,7 @@ class DisentanglingTrainer(LatentTrainer):
         self.set_policy_skill(skill)
 
         next_state = state
-        while not done:
+        while not done and episode_steps <= self.num_sequences + 2:
             action = self.get_skill_action_state_rep(next_state) if self.state_rep \
                 else self.get_skill_action_pixel()
             next_state, reward, done, _ = self.env.step(action)
