@@ -32,20 +32,20 @@ class DisentanglingTrainer(LatentTrainer):
             num_steps=3000000,
             initial_latent_steps=100000,
             batch_size=256,
-            latent_batch_size=128,
+            latent_batch_size=228,
             num_sequences=num_sequences,
             latent_lr=0.0001,
             feature_dim=feature_dim, # Note: Only used if state_rep == False
             latent1_dim=4,
             latent2_dim=12,
-            mode_dim=1,
+            mode_dim=2,
             hidden_units=[26, 26],
-            hidden_rnn_dim=34,
+            hidden_rnn_dim=64,
             rnn_layers=2,
             memory_size=1e5,
             leaky_slope=0.2,
             grad_clip=None,
-            start_steps=5000,
+            start_steps=10000,
             training_log_interval=100,
             learning_log_interval=50,
             cuda=cuda,
@@ -182,7 +182,7 @@ class DisentanglingTrainer(LatentTrainer):
             episode_steps += self.action_repeat
             episode_reward += reward
 
-            self.memory.append(action, reward, next_state, done)
+            self.memory.append(action, skill, next_state, done)
 
             if self.is_update():
                 if self.learning_steps < self.initial_latent_steps:
@@ -202,12 +202,12 @@ class DisentanglingTrainer(LatentTrainer):
 
     def learn_latent(self):
         # Sample sequence
-        images_seq, actions_seq, rewards_seq, dones_seq = \
+        images_seq, actions_seq, skill_seq, dones_seq = \
             self.memory.sample_latent(self.latent_batch_size)
 
         # Calc loss
         latent_loss = self.calc_latent_loss(
-            images_seq, actions_seq, rewards_seq, dones_seq)
+            images_seq, actions_seq, skill_seq, dones_seq)
 
         # Backprop
         update_params(
@@ -220,7 +220,7 @@ class DisentanglingTrainer(LatentTrainer):
     def calc_latent_loss(self,
                          images_seq,
                          actions_seq,
-                         rewards_seq,
+                         skill_seq,
                          dones_seq):
         # Get features from images
         features_seq = self.latent.encoder(images_seq)
@@ -287,15 +287,22 @@ class DisentanglingTrainer(LatentTrainer):
         mmd_loss = mmd_latent_weighted + mmd_mode_weighted
 
         # MI-Gradient
+        # m - data
         batch_size = mode_post_samples.size(0)
-        features_actions_seq = torch.cat([features_seq[:, :-1, :],
-                                          actions_seq], dim=2)
+        features_actions_seq = torch.cat([features_seq,
+                                          actions_seq[:, :-1, :]], dim=2)
         xs = features_actions_seq.view(batch_size, -1)
-        ys = mode_post_samples.view(batch_size, -1)
+        ys = mode_post_sample
         xs_ys = torch.cat([xs, ys], dim=1)
-        gradient_estimator = entropy_surrogate(self.spectral_j, xs_ys) \
-                             - entropy_surrogate(self.spectral_m, ys)
-
+        gradient_estimator_m_data = entropy_surrogate(self.spectral_j, xs_ys) \
+                                    - entropy_surrogate(self.spectral_m, ys)
+        
+        # m - gen_data
+        xs = mode_pri_sample
+        ys = actions_seq_dists.loc.view(batch_size, -1)
+        xs_ys = torch.cat([xs, ys], dim=1)
+        gradient_estimator_m_gendata = entropy_surrogate(self.spectral_j, xs_ys) \
+                                       - entropy_surrogate(self.spectral_m, ys)
 
         # Loss
         reg_weight = 1000.
@@ -303,7 +310,7 @@ class DisentanglingTrainer(LatentTrainer):
         kld_info_weighted = (1. - alpha) * kld_losses
         mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
         #latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
-        latent_loss = -log_likelihood + latent_kld + mmd_mode_weighted - gradient_estimator
+        latent_loss = -log_likelihood + latent_kld + mode_kld - 1 * gradient_estimator_m_data
         latent_loss *= 100
 
         # Logging
@@ -347,7 +354,8 @@ class DisentanglingTrainer(LatentTrainer):
             self._summary_log('stats_mmd/mmd_latent_weighted', mmd_latent_weighted)
 
             # MI-Grad
-            self._summary_log('stats_mi/mi_grad_est', gradient_estimator)
+            self._summary_log('stats_mi/mi_grad_est m_pri generated data', gradient_estimator_m_gendata)
+            self._summary_log('stats_mi/mi_grad_est m_post data', gradient_estimator_m_data)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
@@ -371,7 +379,35 @@ class DisentanglingTrainer(LatentTrainer):
                                                latent2_post_samples,
                                                mode_pri_samples)
 
+            # Latent Test
+            self._plot_latent_mode_map(skill_seq, mode_post_samples)
+
+
         return latent_loss
+
+    def _plot_latent_mode_map(self, skill_seq, mode_post_samples):
+        if mode_post_samples.size(2) == 2:
+            mode_post_samples = mode_post_samples[:, 0, :]
+            colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'darkorange', 'gray', 'lightgreen']
+            skills = skill_seq.mean(dim=1).detach().cpu().squeeze().numpy().astype(np.int)
+            plt.interactive(False)
+            axes = plt.gca()
+            axes.set_ylim([-3,3])
+            axes.set_xlim([-3,3])
+            #for (idx, skill) in enumerate(skills):
+            #    color = colors[skill.item()]
+            #    plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
+            #                mode_post_samples[idx, 1].detach().cpu().numpy(), label=skill, c=color)
+            for skill in range(10):
+                idx = skills == skill
+                color = colors[skill]
+                plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
+                            mode_post_samples[idx, 1].detach().cpu().numpy(), label=skill, c=color)
+
+            axes.legend()
+            axes.grid(True)
+            fig = plt.gcf()
+            self.writer.add_figure('Latent_test/mode mapping', fig, global_step=self.learning_steps)
 
     def _reconstruction_post_test(self,rand_batch_idx, actions_seq, actions_seq_dists):
         """
