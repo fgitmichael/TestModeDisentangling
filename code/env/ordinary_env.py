@@ -6,7 +6,7 @@ from env import DmControlEnvForPytorch
 class OrdinaryEnvForPytorch(DmControlEnvForPytorch):
 
     def __init__(self, gym_id, action_repeat=1,
-                 obs_type='pixels', render_kwargs=None):
+                 obs_type='state', render_kwargs=None):
         super(DmControlEnvForPytorch, self).__init__()
         assert obs_type in self.keys
         self.env = gym.make(gym_id)
