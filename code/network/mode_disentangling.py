@@ -177,11 +177,6 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  rnn_layers,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
-        '''
-        Note: observation_shape is the shape of the observations of the 
-              RL-environment, even though the observations serve in this
-              network as actions
-        '''
 
         # p(z1(0)) = N(0, I)
         self.latent1_init_prior = ConstantGaussian(latent1_dim)
