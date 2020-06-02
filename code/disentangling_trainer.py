@@ -6,11 +6,11 @@ from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 
-
 from memory.memory_disentangling import MyMemoryDisentangling
 from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
 from utils import calc_kl_divergence, update_params, RunningMeanStats
+from InfoGradEstimation.MIGE import entropy_surrogate, SpectralScoreEstimator
 
 # Needed for the loaded skill policy (Do not delete!)
 import rlkit.torch.sac.diayn
@@ -93,6 +93,10 @@ class DisentanglingTrainer(LatentTrainer):
         data = torch.load(skill_policy_path)
         self.policy = data['evaluation/policy']
         print("Policy loaded")
+
+        # MI-Gradient score estimators
+        self.spectral_j = SpectralScoreEstimator(n_eigen_threshold=0.99)
+        self.spectral_m = SpectralScoreEstimator(n_eigen_threshold=0.99)
 
         # Optimization
         self.latent_optim = Adam(self.latent.parameters(), lr=parent_kwargs['latent_lr'])
@@ -282,13 +286,24 @@ class DisentanglingTrainer(LatentTrainer):
         mmd_latent_weighted = mmd_latent * 100
         mmd_loss = mmd_latent_weighted + mmd_mode_weighted
 
+        # MI-Gradient
+        batch_size = mode_post_samples.size(0)
+        features_actions_seq = torch.cat([features_seq[:, :-1, :],
+                                          actions_seq], dim=2)
+        xs = features_actions_seq.view(batch_size, -1)
+        ys = mode_post_samples.view(batch_size, -1)
+        xs_ys = torch.cat([xs, ys], dim=1)
+        gradient_estimator = entropy_surrogate(self.spectral_j, xs_ys) \
+                             - entropy_surrogate(self.spectral_m, ys)
+
+
         # Loss
         reg_weight = 1000.
         alpha = 1.
         kld_info_weighted = (1. - alpha) * kld_losses
         mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
         #latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
-        latent_loss = -log_likelihood + latent_kld + mmd_mode_weighted
+        latent_loss = -log_likelihood + latent_kld + mmd_mode_weighted - gradient_estimator
         latent_loss *= 100
 
         # Logging
@@ -330,6 +345,9 @@ class DisentanglingTrainer(LatentTrainer):
             self._summary_log('stats_mmd/kld_weighted', kld_info_weighted)
             self._summary_log('stats_mmd/mmd_mode_weighted', mmd_mode_weighted)
             self._summary_log('stats_mmd/mmd_latent_weighted', mmd_latent_weighted)
+
+            # MI-Grad
+            self._summary_log('stats_mi/mi_grad_est', gradient_estimator)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
