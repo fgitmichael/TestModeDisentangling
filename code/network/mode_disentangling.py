@@ -217,7 +217,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         # feat(t) = x(t) : This encoding is performed deterministically.
         if state_rep:
             # State representation
-            self.encoder = EncoderStateRep(observation_shape[0], feature_dim)
+            self.encoder = EncoderStateRep(observation_shape[0], observation_shape[0])
         else:
             # Conv-nets for pixel observations
             self.encoder = Encoder(observation_shape[0], feature_dim,
