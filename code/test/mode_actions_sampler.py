@@ -12,9 +12,7 @@ class ModeActionSampler:
                  mode_init=None):
 
         self.latent_network = latent_network
-        self.device = 'cuda'\
-            if torch.cuda.is_available() and device == torch.device('cuda')\
-            else 'cpu'
+        self.device = device if torch.cuda.is_available() else 'cpu'
 
         # Initialized in reset
         # mode           : mode_dim sized tensor

@@ -11,6 +11,7 @@ from latent_model_trainer import LatentTrainer
 from network.mode_disentangling import ModeDisentanglingNetwork
 from utils import calc_kl_divergence, update_params, RunningMeanStats
 from InfoGradEstimation.MIGE import entropy_surrogate, SpectralScoreEstimator
+from test import ModeActionSampler
 
 # Needed for the loaded skill policy (Do not delete!)
 import rlkit.torch.sac.diayn
@@ -150,6 +151,9 @@ class DisentanglingTrainer(LatentTrainer):
         self.training_log_interval = parent_kwargs['training_log_interval']
         self.learning_log_interval = parent_kwargs['learning_log_interval']
 
+        # Mode action sampler
+        self.mode_action_sampler = ModeActionSampler(self.latent, device=self.device)
+
     def get_skill_action_pixel(self):
         obs_state_space = self.env.get_state_obs()
         action, info = self.policy.get_action(obs_state_space)
@@ -170,7 +174,7 @@ class DisentanglingTrainer(LatentTrainer):
         state = self.env.reset()
         self.memory.set_initial_state(state)
         skill = np.random.randint(self.policy.stochastic_policy.skill_dim)
-        skill = np.random.choice([3, 4, 5, 7, 9], 1).item()
+        #skill = np.random.choice([3, 4, 5, 7, 9], 1).item()
         self.set_policy_skill(skill)
 
         next_state = state
@@ -381,9 +385,88 @@ class DisentanglingTrainer(LatentTrainer):
 
             # Latent Test
             self._plot_latent_mode_map(skill_seq, mode_post_samples)
+            self._gen_mode_grid_graph(mode_post_samples)
 
+        # Mode influence test
+        if self._is_log(self.learning_log_interval*20):
+            self._gen_mode_grid_videos(mode_post_samples)
 
         return latent_loss
+
+    def _gen_mode_grid_videos(self, mode_post_samples):
+        seq_len = mode_post_samples.size(1)
+        with torch.no_grad():
+            modes = self._create_grid(mode_post_samples)
+
+            for (mode_idx, mode) in enumerate(modes):
+
+                obs = self.env.reset()
+                img = self.env.render()
+                img_seq = torch.from_numpy(
+                    img.astype(np.float)).transpose(0, -1).unsqueeze(0)
+                self.mode_action_sampler.reset(mode=mode.unsqueeze(0))
+                for step in range(seq_len):
+                    action = self.mode_action_sampler(
+                        self.latent.encoder(torch.Tensor(obs.astype(np.float))
+                                            .to(self.device).unsqueeze(0)))
+                    obs, _, done, _ = self.env.step(action.detach().cpu().numpy()[0])
+                    img = self.env.render()
+                    img = torch.from_numpy(img.astype(np.float))\
+                        .transpose(0, -1).unsqueeze(0)
+                    img_seq = torch.cat([img_seq, img], dim=0)
+
+                self.writer.add_video('mode_generation_video/mode' + str(mode_idx),
+                                      vid_tensor=img_seq.unsqueeze(0).float(),
+                                      global_step=self.learning_steps)
+
+    def _gen_mode_grid_graph(self, mode_post_samples):
+        #TODO make the method universial in terms of envs
+        assert len(self.env.action_space.shape) == 1, 'Method only works in MountainCar Case'
+        seq_len = mode_post_samples.size(1)
+        with torch.no_grad():
+            modes = self._create_grid(mode_post_samples)
+
+            for (mode_idx, mode) in enumerate(modes):
+
+                obs = self.env.reset()
+                self.mode_action_sampler.reset(mode=mode.unsqueeze(0))
+                action = self.mode_action_sampler(
+                    self.latent.encoder(torch.from_numpy(obs)
+                                        .to(self.device).unsqueeze(0).float()))
+                action = action.detach().cpu().numpy()[0]
+                obs_save = np.expand_dims(obs, axis=0)
+                actions_save = [action]
+                for step in range(seq_len):
+                    obs, _, done, _ = self.env.step(action)
+
+                    action = self.mode_action_sampler(
+                        self.latent.encoder(torch.from_numpy(obs)
+                                            .to(self.device).unsqueeze(0).float()))
+                    action = action.detach().cpu().numpy()[0]
+
+                    actions_save = np.concatenate(
+                        (actions_save, np.expand_dims(action, axis=0)), axis=0)
+                    obs_save = np.concatenate(
+                        (obs_save, np.expand_dims(obs, axis=0)), axis=0)
+                plt.interactive(False)
+                axes = plt.gca()
+                axes.set_ylim([-1.5, 1.5])
+                plt.plot(actions_save, label='actions')
+                for dim in range(obs_save.shape[1]):
+                    plt.plot(obs_save[:, dim], label='state_dim'+ str(dim))
+                fig = plt.gcf()
+                self.writer.add_figure('mode_grid_plot_test/mode' + str(mode_idx),
+                                       figure=fig,
+                                       global_step=self.learning_steps)
+
+    def _create_grid(self, mode_post_samples):
+        mode_dim = mode_post_samples.size(2)
+        grid_vec = torch.linspace(-2., 2., 4)
+        grid_vec_list = [grid_vec] * mode_dim
+        grid = torch.meshgrid(*grid_vec_list)
+        modes = torch.stack(list(grid)).view(mode_dim, -1) \
+            .transpose(0, -1).to(self.device)  # N x mode_dim
+        return modes
 
     def _plot_latent_mode_map(self, skill_seq, mode_post_samples):
         if mode_post_samples.size(2) == 2:

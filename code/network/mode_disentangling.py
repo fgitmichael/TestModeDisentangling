@@ -363,7 +363,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
     def _broadcast_mode_samples(self, mode_sample, latent1_samples):
         """
         Args:
-        mode_sample        : (N, 1, mode_dim) Tensor
+        mode_sample        : (N, mode_dim) Tensor
                              sample of mode variable that will be repeated to the length
                              of the sequence in latent1_samples
         latent1_samples    : (N, S+1, L1) Tensor
