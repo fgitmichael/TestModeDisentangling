@@ -174,7 +174,7 @@ class DisentanglingTrainer(LatentTrainer):
         state = self.env.reset()
         self.memory.set_initial_state(state)
         skill = np.random.randint(self.policy.stochastic_policy.skill_dim)
-        skill = np.random.choice([3, 4, 5, 7, 9], 1).item()
+        #skill = np.random.choice([3, 4, 5, 7, 9], 1).item()
         self.set_policy_skill(skill)
 
         next_state = state
