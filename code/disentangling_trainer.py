@@ -355,9 +355,12 @@ class DisentanglingTrainer(LatentTrainer):
             seq_kldiv_standard = calc_kl_divergence(latent1_post_dists, latent1_pri_dists)
             kldiv_standard = mode_kldiv_standard + seq_kldiv_standard
 
-            self._summary_log('stats_kldiv_standard/kldiv_standard', kldiv_standard)
-            self._summary_log('stats_kldiv_standard/mode_kldiv_standard', mode_kldiv_standard)
-            self._summary_log('stats_kldiv_standard/seq_kldiv_standard', seq_kldiv_standard)
+            self._summary_log('stats_kldiv_standard/kldiv_standard',
+                              kldiv_standard)
+            self._summary_log('stats_kldiv_standard/mode_kldiv_standard',
+                              mode_kldiv_standard)
+            self._summary_log('stats_kldiv_standard/seq_kldiv_standard',
+                              seq_kldiv_standard)
 
             self._summary_log('stats_kldiv/mode_kldiv_used_for_loss', mode_kld)
             self._summary_log('stats_kldiv/latent_kldiv_used_for_loss', latent_kld)
@@ -365,8 +368,10 @@ class DisentanglingTrainer(LatentTrainer):
 
             # Log Likelyhood
             self._summary_log('stats/log-likelyhood', log_likelihood)
-            self._summary_log('stats/log-likelyhood dyn pri,  mode post', ll_dyn_pri_mode_post)
-            self._summary_log('stats/log-likelyhood dyn post, mode pri', ll_dyn_post_mode_pri)
+            self._summary_log('stats/log-likelyhood dyn pri,  mode post',
+                              ll_dyn_pri_mode_post)
+            self._summary_log('stats/log-likelyhood dyn post, mode pri',
+                              ll_dyn_post_mode_pri)
 
             # MMD
             self._summary_log('stats_mmd/mmd_weighted', mmd_info_weighted)
@@ -375,9 +380,12 @@ class DisentanglingTrainer(LatentTrainer):
             self._summary_log('stats_mmd/mmd_latent_weighted', mmd_latent_weighted)
 
             # MI-Grad
-            self._summary_log('stats_mi/mi_grad_est m_pri generated data', gradient_estimator_m_gendata)
-            self._summary_log('stats_mi/mi_grad_est m_post data', gradient_estimator_m_data)
-            self._summary_log('stats_mi/mi_grad_est m_post z_post', gradient_estimator_m_post_z_post)
+            self._summary_log('stats_mi/mi_grad_est m_pri generated data',
+                              gradient_estimator_m_gendata)
+            self._summary_log('stats_mi/mi_grad_est m_post data',
+                              gradient_estimator_m_data)
+            self._summary_log('stats_mi/mi_grad_est m_post z_post',
+                              gradient_estimator_m_post_z_post)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
@@ -390,11 +398,12 @@ class DisentanglingTrainer(LatentTrainer):
             self._reconstruction_post_test(rand_batch_idx,
                                            actions_seq,
                                            actions_seq_dists)
-            self._reconstruction_mode_post_test(rand_batch_idx,
-                                                actions_seq,
-                                                mode_post_samples,
-                                                latent1_pri_samples,
-                                                latent2_pri_samples)
+            self._reconstruction_mode_post_test(
+                rand_batch_idx=rand_batch_idx,
+                actions_seq=actions_seq,
+                mode_post_samples=mode_post_samples,
+                latent1_pri_samples=latent1_pri_samples,
+                latent2_pri_samples=latent2_pri_samples)
             self._reconstruction_dyn_post_test(rand_batch_idx,
                                                actions_seq,
                                                latent1_post_samples,
@@ -439,7 +448,8 @@ class DisentanglingTrainer(LatentTrainer):
 
     def _gen_mode_grid_graph(self, mode_post_samples):
         #TODO make the method universial in terms of envs
-        assert len(self.env.action_space.shape) == 1, 'Method only works in MountainCar Case'
+        assert len(self.env.action_space.shape) == 1,\
+            'Method only works in MountainCar Case'
         seq_len = mode_post_samples.size(1)
         with torch.no_grad():
             modes = self._create_grid(mode_post_samples)
@@ -498,17 +508,20 @@ class DisentanglingTrainer(LatentTrainer):
             #for (idx, skill) in enumerate(skills):
             #    color = colors[skill.item()]
             #    plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
-            #                mode_post_samples[idx, 1].detach().cpu().numpy(), label=skill, c=color)
+            #                mode_post_samples[idx, 1].detach().cpu().numpy(),
+            #                label=skill, c=color)
             for skill in range(10):
                 idx = skills == skill
                 color = colors[skill]
                 plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
-                            mode_post_samples[idx, 1].detach().cpu().numpy(), label=skill, c=color)
+                            mode_post_samples[idx, 1].detach().cpu().numpy(),
+                            label=skill, c=color)
 
             axes.legend()
             axes.grid(True)
             fig = plt.gcf()
-            self.writer.add_figure('Latent_test/mode mapping', fig, global_step=self.learning_steps)
+            self.writer.add_figure('Latent_test/mode mapping',
+                                   fig, global_step=self.learning_steps)
 
     def _reconstruction_post_test(self,rand_batch_idx, actions_seq, actions_seq_dists):
         """
