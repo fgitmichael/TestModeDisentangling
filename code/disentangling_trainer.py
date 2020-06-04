@@ -305,12 +305,20 @@ class DisentanglingTrainer(LatentTrainer):
         gradient_estimator_m_data = entropy_surrogate(self.spectral_j, xs_ys) \
                                     - entropy_surrogate(self.spectral_m, ys)
         
-        # m - gen_data
+        # m_pri - gen_data
         xs = mode_pri_sample
         ys = actions_seq_dists.loc.view(batch_size, -1)
         xs_ys = torch.cat([xs, ys], dim=1)
         gradient_estimator_m_gendata = entropy_surrogate(self.spectral_j, xs_ys) \
                                        - entropy_surrogate(self.spectral_m, ys)
+
+        # m-post - z-post
+        xs = mode_post_sample
+        ys = torch.cat([latent1_post_samples.view(batch_size, -1),
+                        latent2_post_samples.view(batch_size, -1)], dim=1)
+        xs_ys = torch.cat([xs, ys], dim=1)
+        gradient_estimator_m_post_z_post = entropy_surrogate(self.spectral_j, xs_ys) \
+                                           - entropy_surrogate(self.spectral_m, ys)
 
         # Loss
         reg_weight = 1000.
@@ -318,8 +326,13 @@ class DisentanglingTrainer(LatentTrainer):
         kld_info_weighted = (1. - alpha) * kld_losses
         mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
         #latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
-        latent_loss = -log_likelihood + latent_kld + mode_kld - 1 * gradient_estimator_m_data
-        latent_loss *= 100
+        latent_loss = -log_likelihood \
+                      + 0.5 * latent_kld + mode_kld \
+                      - 1 * gradient_estimator_m_data \
+                      - 0 * gradient_estimator_m_gendata \
+                      + 1 * gradient_estimator_m_post_z_post
+
+        latent_loss *= 10
 
         # Logging
         if self._is_log(self.learning_log_interval):
@@ -364,6 +377,7 @@ class DisentanglingTrainer(LatentTrainer):
             # MI-Grad
             self._summary_log('stats_mi/mi_grad_est m_pri generated data', gradient_estimator_m_gendata)
             self._summary_log('stats_mi/mi_grad_est m_post data', gradient_estimator_m_data)
+            self._summary_log('stats_mi/mi_grad_est m_post z_post', gradient_estimator_m_post_z_post)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
