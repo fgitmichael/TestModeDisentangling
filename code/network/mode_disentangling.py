@@ -173,6 +173,8 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  latent2_dim,
                  mode_dim,
                  hidden_units,
+                 hidden_units_decoder,
+                 hidden_units_mode_encoder,
                  hidden_rnn_dim,
                  rnn_layers,
                  leaky_slope=0.2):
@@ -210,7 +212,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
                                                   action_shape[0],
                                                   output_dim=mode_dim,
                                                   hidden_rnn_dim=hidden_rnn_dim,
-                                                  hidden_units=hidden_units,
+                                                  hidden_units=hidden_units_mode_encoder,
                                                   rnn_layers=rnn_layers,
                                                   )
 
@@ -228,7 +230,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         self.decoder = Gaussian(
             latent1_dim + latent2_dim + mode_dim,
             action_shape[0],
-            hidden_units,
+            hidden_units=hidden_units_decoder,
             std=1e-1,
             leaky_slope=leaky_slope)
 
