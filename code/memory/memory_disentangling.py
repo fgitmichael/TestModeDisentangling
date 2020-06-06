@@ -24,8 +24,9 @@ class MySeqBufferDisentangling(LazySequenceBuff):
         return len(self.memory['action'])
 
 class MyMemoryDisentangling(LazyMemory):
-    def __init__(self, **kwargs):
+    def __init__(self, state_rep, **kwargs):
         super(MyMemoryDisentangling, self).__init__(**kwargs)
+        self.state_rep = state_rep
 
     def reset(self):
         self.is_set_init = False
