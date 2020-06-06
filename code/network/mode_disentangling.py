@@ -9,6 +9,44 @@ from .base import BaseNetwork, create_linear_network,\
 from .latent import Gaussian, ConstantGaussian, \
     Decoder, Encoder, EncoderStateRep
 
+class ActionDecoder(BaseNetwork):
+
+    def __init__(self,
+                 latent1_dim,
+                 latent2_dim,
+                 mode_dim,
+                 action_dim,
+                 hidden_units,
+                 leaky_slope,
+                 std=None):
+        super(ActionDecoder, self).__init__()
+
+        latent_dim = latent1_dim + latent2_dim
+        if latent_dim > mode_dim:
+            self.mode_repeat = 10 * latent_dim//mode_dim
+        else:
+            self.mode_repeat = 1
+
+        self.net = Gaussian(latent_dim+self.mode_repeat*mode_dim,
+                            action_dim,
+                            hidden_units=hidden_units,
+                            leaky_slope=leaky_slope,
+                            std=std,
+                            )
+
+    def forward(self,
+                latent1_sample,
+                latent2_sample,
+                mode_sample):
+        assert len(latent1_sample.shape) \
+               == len(latent2_sample.shape) \
+               == len(mode_sample.shape)
+        mode_sample_input = torch.cat(self.mode_repeat * [mode_sample], dim=-1)
+        net_input = torch.cat([latent1_sample, latent2_sample, mode_sample_input], dim=-1)
+        action_dist = self.net(net_input)
+
+        return action_dist
+
 
 class LogvarGaussian(Gaussian):
     """
@@ -227,12 +265,22 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         # p(u(t) | z2(t), z1(t), m)
         # TODO: Test if fixed variance performs better than learned variance (as in VAE)
-        self.decoder = Gaussian(
-            latent1_dim + latent2_dim + mode_dim,
-            action_shape[0],
+        self.mode_repeat = (latent1_dim + latent2_dim)//mode_dim
+        #self.decoder = Gaussian(
+        #    latent1_dim + latent2_dim + mode_dim,
+        #    action_shape[0],
+        #    hidden_units=hidden_units_decoder,
+        #    std=1e-1,
+        #    leaky_slope=leaky_slope)
+        self.decoder = ActionDecoder(
+            latent1_dim=latent1_dim,
+            latent2_dim=latent2_dim,
+            mode_dim=mode_dim,
+            action_dim=action_shape[0],
             hidden_units=hidden_units_decoder,
             std=1e-1,
-            leaky_slope=leaky_slope)
+            leaky_slope=leaky_slope
+        )
 
     def sample_prior(self, features_seq, init_actions=None):
         """

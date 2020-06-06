@@ -259,19 +259,26 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Log likelihood loss of generated actions
         actions_seq_dists = self.latent.decoder(
-            [latent1_post_samples, latent2_post_samples, mode_post_samples])
+            latent1_sample=latent1_post_samples,
+            latent2_sample=latent2_post_samples,
+            mode_sample=mode_post_samples)
         log_likelihood = actions_seq_dists.log_prob(actions_seq).mean(dim=0).mean()
 
         # Log likelihood loss of generated actions with latent dynamic priors and mode
         # posterior
         actions_seq_dists_mode = self.latent.decoder(
-            [latent1_pri_samples.detach(), latent2_pri_samples.detach(), mode_post_samples])
-        ll_dyn_pri_mode_post = actions_seq_dists_mode.log_prob(actions_seq).mean(dim=0).mean()
+            latent1_sample=latent1_pri_samples.detach(),
+            latent2_sample=latent2_pri_samples.detach(),
+            mode_sample=mode_post_samples)
+        ll_dyn_pri_mode_post = actions_seq_dists_mode.\
+            log_prob(actions_seq).mean(dim=0).mean()
 
         # Log likelihood loss of generated actions with latent dynamic posteriors and
         # mode prior
         action_seq_dists_dyn = self.latent.decoder(
-            [latent1_post_samples, latent2_post_samples, mode_pri_samples]
+            latent1_sample=latent1_post_samples,
+            latent2_sample=latent2_post_samples,
+            mode_sample=mode_pri_samples
         )
         ll_dyn_post_mode_pri = action_seq_dists_dyn.log_prob(actions_seq).mean(dim=0).mean()
 
@@ -562,9 +569,10 @@ class DisentanglingTrainer(LatentTrainer):
         rand_batch = rand_batch_idx
 
         # Decode
-        actions_seq_dists = self.latent.decoder([latent1_pri_samples[rand_batch],
-                                                 latent2_pri_samples[rand_batch],
-                                                 mode_post_samples[rand_batch]])
+        actions_seq_dists = self.latent.decoder(
+            latent1_sample=latent1_pri_samples[rand_batch],
+            latent2_sample=latent2_pri_samples[rand_batch],
+            mode_sample=mode_post_samples[rand_batch])
 
         # Reconstruction test
         action_dim = actions_seq.size(2)
@@ -591,9 +599,10 @@ class DisentanglingTrainer(LatentTrainer):
         rand_batch = rand_batch_idx
 
         # Decode
-        actions_seq_dists = self.latent.decoder([latent1_post_samples[rand_batch],
-                                                 latent2_post_samples[rand_batch],
-                                                 mode_pri_samples[rand_batch]])
+        actions_seq_dists = self.latent.decoder(
+            latent1_sample=latent1_post_samples[rand_batch],
+            latent2_sample=latent2_post_samples[rand_batch],
+            mode_sample=mode_pri_samples[rand_batch])
 
         # Reconstruction test
         action_dim = actions_seq.size(2)
