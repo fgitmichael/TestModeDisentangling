@@ -263,6 +263,7 @@ class DisentanglingTrainer(LatentTrainer):
             latent2_sample=latent2_post_samples,
             mode_sample=mode_post_samples)
         log_likelihood = actions_seq_dists.log_prob(actions_seq).mean(dim=0).mean()
+        mse = torch.nn.functional.mse_loss(actions_seq_dists.loc, actions_seq)
 
         # Log likelihood loss of generated actions with latent dynamic priors and mode
         # posterior
@@ -299,7 +300,7 @@ class DisentanglingTrainer(LatentTrainer):
         mmd_latent = self.compute_mmd_tutorial(
             latent1_pri_samples_trans, latent1_post_samples_trans)
         mmd_mode_weighted = mmd_mode
-        mmd_latent_weighted = mmd_latent * 100
+        mmd_latent_weighted = mmd_latent
         mmd_loss = mmd_latent_weighted + mmd_mode_weighted
 
         # MI-Gradient
@@ -320,25 +321,64 @@ class DisentanglingTrainer(LatentTrainer):
         gradient_estimator_m_gendata = entropy_surrogate(self.spectral_j, xs_ys) \
                                        - entropy_surrogate(self.spectral_m, ys)
 
-        # m-post - z-post
-        xs = mode_post_sample
-        ys = torch.cat([latent1_post_samples.view(batch_size, -1),
-                        latent2_post_samples.view(batch_size, -1)], dim=1)
+        # m_post - latent_post
+        #xs = mode_post_sample
+        #gradient_estimator_mpost_latentpost = 0
+        #for idx in range(latent1_post_samples.size(1)):
+        #    ys = latent1_post_samples[:, idx, :]
+        #    xs_ys = torch.cat([xs, ys], dim=1)
+        #    single_estimator = entropy_surrogate(self.spectral_j, xs_ys) \
+        #                       - entropy_surrogate(self.spectral_m, ys)
+        #    gradient_estimator_mpost_latentpost += single_estimator
+        xs = latent1_post_samples.view(batch_size, -1)
+        ys = mode_post_sample
         xs_ys = torch.cat([xs, ys], dim=1)
-        gradient_estimator_m_post_z_post = entropy_surrogate(self.spectral_j, xs_ys) \
-                                           - entropy_surrogate(self.spectral_m, ys)
+        gradient_estimator_m_gendata = entropy_surrogate(self.spectral_j, xs_ys) \
+                                       - entropy_surrogate(self.spectral_m, ys)
+
+        # m-post - z-post
+        #xs = mode_post_sample
+        #ys = torch.cat([latent1_post_samples.view(batch_size, -1),
+        #                latent2_post_samples.view(batch_size, -1)], dim=1)
+        #xs_ys = torch.cat([xs, ys], dim=1)
+        #gradient_estimator_m_post_z_post = entropy_surrogate(self.spectral_j, xs_ys) \
+        #                                   - entropy_surrogate(self.spectral_m, ys)
 
         # Loss
         reg_weight = 1000.
-        alpha = 1.
+        alpha = 0.99
         kld_info_weighted = (1. - alpha) * kld_losses
         mmd_info_weighted = (alpha + reg_weight - 1.) * mmd_loss
+
+        reg_weight_mode = 100.
+        alpha_mode = 1.
+        mmd_mode_info_weighted = \
+            (alpha_mode + reg_weight_mode - 1.) * mmd_mode_weighted
+        kld_mode_info_weighted = (1. - alpha_mode) * mode_kld
+
+        reg_weight_latent = 100.
+        alpha_latent = 0
+        mmd_latent_info_weighted = \
+            (alpha_latent + reg_weight_latent -1.) * mmd_latent_weighted
+        kld_latent_info_weighted = (1. - alpha_latent) * latent_kld
+
+        loss_X = -log_likelihood
+        loss_Z = kld_info_weighted + mmd_info_weighted
+
+        latent_loss = mse + kld_losses - 1 * gradient_estimator_m_data
         #latent_loss = kld_info_weighted - log_likelihood + mmd_info_weighted
-        latent_loss = -log_likelihood \
-                      + 0.5 * latent_kld + mode_kld \
-                      - 1 * gradient_estimator_m_data \
-                      - 0 * gradient_estimator_m_gendata \
-                      + 1 * gradient_estimator_m_post_z_post
+        #latent_loss = -log_likelihood \
+        #              + 0.01 * latent_kld + mode_kld \
+        #              - 1 * gradient_estimator_m_data \
+        #              - 0 * gradient_estimator_m_gendata \
+        #              #+ 1 * gradient_estimator_m_post_z_post
+        #latent_loss = -log_likelihood + kld_info_weighted + mmd_info_weighted
+        #latent_loss = mse\
+        #              + mmd_mode_info_weighted \
+        #              + kld_mode_info_weighted \
+        #              + mmd_latent_info_weighted \
+        #              + kld_latent_info_weighted \
+        #              #+ 1 * gradient_estimator_mpost_latentpost
 
         latent_loss *= 10
 
@@ -376,24 +416,33 @@ class DisentanglingTrainer(LatentTrainer):
 
             # Log Likelyhood
             self._summary_log('stats/log-likelyhood', log_likelihood)
-            self._summary_log('stats/log-likelyhood dyn pri,  mode post',
-                              ll_dyn_pri_mode_post)
-            self._summary_log('stats/log-likelyhood dyn post, mode pri',
-                              ll_dyn_post_mode_pri)
+            self._summary_log('stats/mse', mse)
 
             # MMD
             self._summary_log('stats_mmd/mmd_weighted', mmd_info_weighted)
             self._summary_log('stats_mmd/kld_weighted', kld_info_weighted)
             self._summary_log('stats_mmd/mmd_mode_weighted', mmd_mode_weighted)
             self._summary_log('stats_mmd/mmd_latent_weighted', mmd_latent_weighted)
+            self._summary_log('stats_mmd_separated/mmd_mode_info_weighted',
+                              mmd_mode_info_weighted)
+            self._summary_log('stats_mmd_separated/kld_mode_info_weighted',
+                              kld_mode_info_weighted)
+            self._summary_log('stats_mmd_separated/mmd_latent_info_weighted',
+                              mmd_latent_info_weighted)
+            self._summary_log('stats_mmd_separated/kld_latent_info_weighted',
+                              kld_latent_info_weighted)
+            self._summary_log('stats_mmd_separated/loss_latentZ',
+                              mmd_latent_info_weighted + kld_latent_info_weighted)
+            self._summary_log('stats_mmd_separated/loss_modeZ',
+                              mmd_mode_info_weighted + kld_mode_info_weighted)
 
             # MI-Grad
             self._summary_log('stats_mi/mi_grad_est m_pri generated data',
                               gradient_estimator_m_gendata)
             self._summary_log('stats_mi/mi_grad_est m_post data',
                               gradient_estimator_m_data)
-            self._summary_log('stats_mi/mi_grad_est m_post z_post',
-                              gradient_estimator_m_post_z_post)
+            #self._summary_log('stats_mi/mi_grad_est m_post z_post',
+            #                  gradient_estimator_m_post_z_post)
 
             # Loss
             self._summary_log('loss/network', latent_loss)
