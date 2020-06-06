@@ -454,7 +454,9 @@ class DisentanglingTrainer(LatentTrainer):
             rand_batch_idx = np.random.choice(actions_seq.size(0))
             self._reconstruction_post_test(rand_batch_idx,
                                            actions_seq,
-                                           actions_seq_dists)
+                                           actions_seq_dists,
+                                           images_seq
+                                           )
             self._reconstruction_mode_post_test(
                 rand_batch_idx=rand_batch_idx,
                 actions_seq=actions_seq,
@@ -478,7 +480,7 @@ class DisentanglingTrainer(LatentTrainer):
         return latent_loss
 
     def _gen_mode_grid_videos(self, mode_post_samples):
-        seq_len = mode_post_samples.size(1)
+        seq_len = 100
         with torch.no_grad():
             modes = self._create_grid(mode_post_samples)
 
@@ -580,7 +582,7 @@ class DisentanglingTrainer(LatentTrainer):
             self.writer.add_figure('Latent_test/mode mapping',
                                    fig, global_step=self.learning_steps)
 
-    def _reconstruction_post_test(self,rand_batch_idx, actions_seq, actions_seq_dists):
+    def _reconstruction_post_test(self,rand_batch_idx, actions_seq, actions_seq_dists, states):
         """
         Test reconstruction of inferred posterior
         Args:
@@ -593,8 +595,9 @@ class DisentanglingTrainer(LatentTrainer):
         action_dim = actions_seq.size(2)
         gt_actions = actions_seq[rand_batch].detach().cpu()
         post_actions = actions_seq_dists.loc[rand_batch].detach().cpu()
+        states = states[rand_batch].detach().cpu()
         for dim in range(action_dim):
-            fig = self._reconstruction_test_plot(dim, gt_actions, post_actions)
+            fig = self._reconstruction_test_plot(dim, gt_actions, post_actions, states)
             self.writer.add_figure('Reconst_post_test/reconst test dim' + str(dim), fig,
                                    global_step=self.learning_steps)
             plt.clf()
@@ -665,12 +668,16 @@ class DisentanglingTrainer(LatentTrainer):
                                    fig,
                                    global_step=self.learning_steps)
 
-    def _reconstruction_test_plot(self, dim, gt_actions, post_actions):
+    def _reconstruction_test_plot(self, dim, gt_actions, post_actions, states=None):
         plt.interactive(False)
         axes = plt.gca()
         axes.set_ylim([-1.5, 1.5])
         plt.plot(gt_actions[:, dim].numpy())
         plt.plot(post_actions[:, dim].numpy())
+        if states is not None:
+            for dim in range(states.size(1)):
+                plt.plot(states[:, dim].numpy())
+
         fig = plt.gcf()
         return fig
 
