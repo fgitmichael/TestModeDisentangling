@@ -45,9 +45,15 @@ class MyMemoryDisentangling(LazyMemory):
         '''
         indices = np.random.randint(low=0, high=self._n, size=batch_size)
 
-        states_seq = np.empty((
-            batch_size, self.num_sequences, *self.observation_shape),
-            dtype=np.uint8)
+        if self.state_rep:
+            states_seq = np.empty((
+                batch_size, self.num_sequences, *self.observation_shape),
+                dtype=np.float32)
+        else:
+            states_seq = np.empty((
+                batch_size, self.num_sequences, *self.observation_shape),
+                dtype=np.uint8)
+
         actions_seq = np.empty((
             batch_size, self.num_sequences + 1, *self.action_shape),
             dtype=np.float32)
@@ -63,7 +69,11 @@ class MyMemoryDisentangling(LazyMemory):
             rewards_seq[i, ...] = self['reward'][index]
             dones_seq[i, ...] = self['done'][index]
 
-        states_seq = torch.ByteTensor(states_seq).to(self.device).float()/255.
+        if self.state_rep:
+            states_seq = torch.FloatTensor(states_seq).to(self.device)
+        else:
+            states_seq = torch.ByteTensor(states_seq).to(self.device).float()/255.
+
         actions_seq = torch.FloatTensor(actions_seq).to(self.device)
         rewards_seq = torch.FloatTensor(rewards_seq).to(self.device)
         dones_seq = torch.BoolTensor(dones_seq).to(self.device).float()

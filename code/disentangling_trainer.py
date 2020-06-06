@@ -108,6 +108,7 @@ class DisentanglingTrainer(LatentTrainer):
 
         # Memory
         self.memory = MyMemoryDisentangling(
+            state_rep=state_rep,
             capacity=parent_kwargs['memory_size'],
             num_sequences=parent_kwargs['num_sequences'],
             observation_shape=self.observation_shape,
