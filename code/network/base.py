@@ -32,9 +32,12 @@ class BaseNetwork(nn.Module):
         for name, weight in self.named_parameters():
             try:
                 summary_writer.add_histogram(name, weight, itr)
+            except:
+                print('%s-weight could not be written to tensorboard' % name)
+            try:
                 summary_writer.add_histogram(f'{name}.grad', weight.grad, itr)
             except:
-                print('%s could not be written to tensorboard' % name)
+                print('%s-grad could not be written to tensorboard' % name)
 
 
 def create_linear_network(input_dim, output_dim, hidden_units=[256, 256],

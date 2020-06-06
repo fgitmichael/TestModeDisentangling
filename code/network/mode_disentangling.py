@@ -9,6 +9,44 @@ from .base import BaseNetwork, create_linear_network,\
 from .latent import Gaussian, ConstantGaussian, \
     Decoder, Encoder, EncoderStateRep
 
+class ActionDecoder(BaseNetwork):
+
+    def __init__(self,
+                 latent1_dim,
+                 latent2_dim,
+                 mode_dim,
+                 action_dim,
+                 hidden_units,
+                 leaky_slope,
+                 std=None):
+        super(ActionDecoder, self).__init__()
+
+        latent_dim = latent1_dim + latent2_dim
+        if latent_dim > mode_dim:
+            self.mode_repeat = 10 * latent_dim//mode_dim
+        else:
+            self.mode_repeat = 1
+
+        self.net = Gaussian(latent_dim+self.mode_repeat*mode_dim,
+                            action_dim,
+                            hidden_units=hidden_units,
+                            leaky_slope=leaky_slope,
+                            std=std,
+                            )
+
+    def forward(self,
+                latent1_sample,
+                latent2_sample,
+                mode_sample):
+        assert len(latent1_sample.shape) \
+               == len(latent2_sample.shape) \
+               == len(mode_sample.shape)
+        mode_sample_input = torch.cat(self.mode_repeat * [mode_sample], dim=-1)
+        net_input = torch.cat([latent1_sample, latent2_sample, mode_sample_input], dim=-1)
+        action_dist = self.net(net_input)
+
+        return action_dist
+
 
 class LogvarGaussian(Gaussian):
     """
@@ -101,6 +139,7 @@ class ModeEncoder(BaseNetwork):
                  action_shape,
                  output_dim,  # typically mode_dim
                  hidden_rnn_dim,
+                 hidden_units,
                  rnn_layers
                  ):
         super(ModeEncoder, self).__init__()
@@ -116,7 +155,7 @@ class ModeEncoder(BaseNetwork):
         # 2*hidden_rnn_dim from actions rnn, hence input dim is 4*hidden_rnn_dim
         self.f_dist = Gaussian(input_dim=4 * hidden_rnn_dim,
                                output_dim=output_dim,
-                               hidden_units=[256, 256])
+                               hidden_units=hidden_units)
 
     def forward(self, features_seq, actions_seq):
         feat_res = self.f_rnn_features(features_seq)
@@ -125,6 +164,40 @@ class ModeEncoder(BaseNetwork):
 
         # Feed result into Gaussian layer
         return self.f_dist(rnn_result)
+
+
+class ModeEncoderCombined(BaseNetwork):
+
+    def __init__(self,
+                 feature_shape,
+                 action_shape,
+                 output_dim, # typicall mode_dim
+                 hidden_rnn_dim,
+                 hidden_units,
+                 rnn_layers):
+        super(BaseNetwork, self).__init__()
+
+        self.rnn = BiRnn(feature_shape + action_shape,
+                           hidden_rnn_dim=hidden_rnn_dim,
+                           rnn_layers=rnn_layers)
+
+        self.mode_dist = Gaussian(input_dim=2*hidden_rnn_dim,
+                                  output_dim=output_dim,
+                                  hidden_units=hidden_units)
+
+
+    def forward(self, features_seq, actions_seq):
+        # State-seq-len is always shorter by one than action_seq_len, but to stack the
+        # sequence need to have the same length. Solution: learn the missing element in the state seq
+        # Solution: discard last action
+        assert features_seq.size(0)+1 == actions_seq.size(0)
+        actions_seq = actions_seq[:-1, :, :]
+
+        seq = torch.cat([features_seq, actions_seq], dim=2)
+
+        rnn_result = self.rnn(seq)
+
+        return self.mode_dist(rnn_result)
 
 
 class ModeDisentanglingNetwork(BaseNetwork):
@@ -138,15 +211,12 @@ class ModeDisentanglingNetwork(BaseNetwork):
                  latent2_dim,
                  mode_dim,
                  hidden_units,
+                 hidden_units_decoder,
+                 hidden_units_mode_encoder,
                  hidden_rnn_dim,
                  rnn_layers,
                  leaky_slope=0.2):
         super(ModeDisentanglingNetwork, self).__init__()
-        '''
-        Note: observation_shape is the shape of the observations of the 
-              RL-environment, even though the observations serve in this
-              network as actions
-        '''
 
         # p(z1(0)) = N(0, I)
         self.latent1_init_prior = ConstantGaussian(latent1_dim)
@@ -176,28 +246,41 @@ class ModeDisentanglingNetwork(BaseNetwork):
         # q(z2(t+1) | z1(t+1), z2(t), a(t)) = p(z2(t+1) | z1(t+1), z2(t), a(t))
         self.latent2_posterior = self.latent2_prior
         # q(m | features(1:T-1), actions(1:T))
-        self.mode_posterior = ModeEncoder(feature_dim,
-                                          action_shape[0],
-                                          output_dim=mode_dim,
-                                          hidden_rnn_dim=hidden_rnn_dim,
-                                          rnn_layers=rnn_layers
-                                          )
+        self.mode_posterior = ModeEncoderCombined(feature_dim,
+                                                  action_shape[0],
+                                                  output_dim=mode_dim,
+                                                  hidden_rnn_dim=hidden_rnn_dim,
+                                                  hidden_units=hidden_units_mode_encoder,
+                                                  rnn_layers=rnn_layers,
+                                                  )
 
         # feat(t) = x(t) : This encoding is performed deterministically.
         if state_rep:
             # State representation
-            self.encoder = EncoderStateRep(observation_shape[0], feature_dim)
+            self.encoder = EncoderStateRep(observation_shape[0], observation_shape[0])
         else:
             # Conv-nets for pixel observations
-            self.encoder = Encoder(
-                observation_shape[0], feature_dim, leaky_slope=leaky_slope)
+            self.encoder = Encoder(observation_shape[0], feature_dim,
+                                   leaky_slope=leaky_slope)
 
         # p(u(t) | z2(t), z1(t), m)
-        self.decoder = Gaussian(
-            latent1_dim + latent2_dim + mode_dim,
-            action_shape[0],
-            hidden_units,
-            leaky_slope=leaky_slope)
+        # TODO: Test if fixed variance performs better than learned variance (as in VAE)
+        self.mode_repeat = (latent1_dim + latent2_dim)//mode_dim
+        #self.decoder = Gaussian(
+        #    latent1_dim + latent2_dim + mode_dim,
+        #    action_shape[0],
+        #    hidden_units=hidden_units_decoder,
+        #    std=1e-1,
+        #    leaky_slope=leaky_slope)
+        self.decoder = ActionDecoder(
+            latent1_dim=latent1_dim,
+            latent2_dim=latent2_dim,
+            mode_dim=mode_dim,
+            action_dim=action_shape[0],
+            hidden_units=hidden_units_decoder,
+            std=1e-1,
+            leaky_slope=leaky_slope
+        )
 
     def sample_prior(self, features_seq, init_actions=None):
         """
@@ -209,7 +292,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         Returns:
             latent1_samples  : (N, S+1, L1) tensor of sampled latent vectors.
             latent2_samples  : (N, S+1, L2) tensor of sampled latent vectors.
-            mode_samples     : (N, mode_dim) tensor of sampled mode vectors.
+            mode_samples     : (N, S+1, mode_dim) tensor of sampled mode vectors.
             latent1_dists    : (S+1) length list of (N, L1) distributions.
             latent2_dists    : (S+1) length list of (N, L2) distributions.
 
@@ -262,8 +345,9 @@ class ModeDisentanglingNetwork(BaseNetwork):
 
         mode_dist = self.mode_prior(features_seq[0])
         mode_sample = mode_dist.rsample()
+        mode_samples = self._broadcast_mode_samples(mode_sample, latent1_samples)
 
-        return (latent1_samples, latent2_samples, mode_sample), \
+        return (latent1_samples, latent2_samples, mode_samples), \
                (latent1_dists, latent2_dists, mode_dist)
 
     def sample_posterior(self, actions_seq, features_seq):
@@ -276,7 +360,7 @@ class ModeDisentanglingNetwork(BaseNetwork):
         Returns:
             latent1_samples : (N, S+1, L1) tensor of sampled latent vectors
             latent2_samples : (N, S+1, L2) tensor of sampled latent vectors
-            mode_samples    : (N, 1, mode_dim) tensor of sampled modes
+            mode_samples    : (N, S+1, mode_dim) tensor of sampled modes
             latent1_dists   : (S+1) length list of (N, L1) distributions
             latent2_dists   : (S+1) length list of (N, L2) distributions
             mode_dist       : scalar vector of (N, mode_dim) distributions
@@ -321,12 +405,36 @@ class ModeDisentanglingNetwork(BaseNetwork):
         mode_dist = self.mode_posterior(features_seq=features_seq,
                                         actions_seq=actions_seq)
         mode_sample = mode_dist.rsample()
+        mode_samples = self._broadcast_mode_samples(mode_sample, latent1_samples)
 
-        return (latent1_samples, latent2_samples, mode_sample), \
+        return (latent1_samples, latent2_samples, mode_samples), \
                (latent1_dists, latent2_dists, mode_dist)
 
+    def _broadcast_mode_samples(self, mode_sample, latent1_samples):
+        """
+        Args:
+        mode_sample        : (N, mode_dim) Tensor
+                             sample of mode variable that will be repeated to the length
+                             of the sequence in latent1_samples
+        latent1_samples    : (N, S+1, L1) Tensor
+                             Used to get the dimension
+
+        Returns:
+        mode_samples       : (N, S+1, mode_dim) Tensor
+        """
+        assert len(latent1_samples.shape) == 3, 'latent1_samples is not a three dimensional' \
+                                                'Tensor'
+
+        mode_sample = mode_sample.unsqueeze(1)
+        mode_samples = mode_sample.expand(
+            mode_sample.size(0), latent1_samples.size(1), mode_sample.size(2))
+
+        return mode_samples
+
     def sample_mode(self):
-        # Sample from the mode prior
+        """
+        Sample from mode prior
+        """
         batch_size = 1
         return self.mode_prior(torch.zeros(batch_size, 1)).sample()
 
