@@ -474,13 +474,13 @@ class DisentanglingTrainer(LatentTrainer):
             self._gen_mode_grid_graph(mode_post_samples)
 
         # Mode influence test
-        if self._is_log(self.learning_log_interval*20):
+        if self._is_log(self.learning_log_interval*10):
             self._gen_mode_grid_videos(mode_post_samples)
 
         return latent_loss
 
     def _gen_mode_grid_videos(self, mode_post_samples):
-        seq_len = 100
+        seq_len = 200
         with torch.no_grad():
             modes = self._create_grid(mode_post_samples)
 
@@ -556,31 +556,38 @@ class DisentanglingTrainer(LatentTrainer):
         return modes
 
     def _plot_latent_mode_map(self, skill_seq, mode_post_samples):
-        if mode_post_samples.size(2) == 2:
-            mode_post_samples = mode_post_samples[:, 0, :]
-            colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'darkorange', 'gray', 'lightgreen']
-            skills = skill_seq.mean(dim=1).detach().cpu().squeeze().numpy().astype(np.int)
-            plt.interactive(False)
-            axes = plt.gca()
-            axes.set_ylim([-3,3])
-            axes.set_xlim([-3,3])
-            #for (idx, skill) in enumerate(skills):
-            #    color = colors[skill.item()]
-            #    plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
-            #                mode_post_samples[idx, 1].detach().cpu().numpy(),
-            #                label=skill, c=color)
-            for skill in range(10):
-                idx = skills == skill
-                color = colors[skill]
-                plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
-                            mode_post_samples[idx, 1].detach().cpu().numpy(),
-                            label=skill, c=color)
+        with torch.no_grad():
+            images_seq, actions_seq, skill_seq, dones_seq = \
+                self.memory.sample_latent(128)
+            features_seq = self.latent.encoder(images_seq)
+            mode_post_dist = self.latent.mode_posterior(features_seq=features_seq.transpose(0, 1),
+                                       actions_seq=actions_seq.transpose(0, 1))
+            mode_post_sample = mode_post_dist.rsample()
 
-            axes.legend()
-            axes.grid(True)
-            fig = plt.gcf()
-            self.writer.add_figure('Latent_test/mode mapping',
-                                   fig, global_step=self.learning_steps)
+            if mode_post_sample.size(1) == 2:
+                colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'darkorange', 'gray', 'lightgreen']
+                skills = skill_seq.mean(dim=1).detach().cpu().squeeze().numpy().astype(np.int)
+                plt.interactive(False)
+                axes = plt.gca()
+                axes.set_ylim([-3,3])
+                axes.set_xlim([-3,3])
+                #for (idx, skill) in enumerate(skills):
+                #    color = colors[skill.item()]
+                #    plt.scatter(mode_post_samples[idx, 0].detach().cpu().numpy(),
+                #                mode_post_samples[idx, 1].detach().cpu().numpy(),
+                #                label=skill, c=color)
+                for skill in range(10):
+                    idx = skills == skill
+                    color = colors[skill]
+                    plt.scatter(mode_post_sample[idx, 0].detach().cpu().numpy(),
+                                mode_post_sample[idx, 1].detach().cpu().numpy(),
+                                label=skill, c=color)
+
+                axes.legend()
+                axes.grid(True)
+                fig = plt.gcf()
+                self.writer.add_figure('Latent_test/mode mapping',
+                                       fig, global_step=self.learning_steps)
 
     def _reconstruction_post_test(self,rand_batch_idx, actions_seq, actions_seq_dists, states):
         """
